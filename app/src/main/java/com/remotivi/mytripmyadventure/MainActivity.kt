@@ -55,6 +55,7 @@ sealed class Screen(val route: String, val icon: ImageVector, val label: String)
     // Other screens
     object TripDetail : Screen("trip_detail/{tripId}", Icons.Default.Info, "Detail")
     object Payment : Screen("payment/{tripId}", Icons.Default.Payment, "Payment")
+    object Review : Screen("review", Icons.Default.RateReview, "Review")
     object Notifications : Screen("notif", Icons.Default.Notifications, "Notifications")
     object Chat : Screen("chat", Icons.AutoMirrored.Filled.Message, "Chat")
     object DetailChat : Screen("detail_chat/{name}", Icons.AutoMirrored.Filled.Message, "Detail Chat")
@@ -103,6 +104,7 @@ fun MainApp() {
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
                 PaymentScreen(tripId, navController)
             }
+            composable(Screen.Review.route) { ReviewScreen(navController) }
             
             composable(Screen.Notifications.route) { NotificationScreen() }
             composable(Screen.Chat.route) { ChatScreen(navController) }

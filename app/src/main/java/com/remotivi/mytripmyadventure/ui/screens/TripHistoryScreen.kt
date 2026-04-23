@@ -1,5 +1,6 @@
 package com.remotivi.mytripmyadventure.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,9 +20,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.components.TripData
 import com.remotivi.mytripmyadventure.ui.components.TripItemCard
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
+import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 
 @Composable
 fun TripHistoryScreen(navController: NavHostController) {
@@ -98,7 +101,7 @@ fun TripHistoryScreen(navController: NavHostController) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = {},
+                        onClick = { navController.navigate("payment/merbabu") },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE67E22)),
                         shape = RoundedCornerShape(12.dp)
@@ -110,10 +113,20 @@ fun TripHistoryScreen(navController: NavHostController) {
         } else {
             // Mock History
             LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                items(listOf(
-                    TripData("Lombok Trekking", "NTB", "10 Jan - 15 Jan", "Rp 4.000.000")
-                )) { trip ->
-                    TripItemCard(trip, status = "Completed")
+                item {
+                    TripItemCard(
+                        trip = TripData("Rinjani & NTB", "Lombok", "01 Mei - 04 Mei", "Rp5.000.000"),
+                        status = "Completed"
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = { navController.navigate(Screen.Review.route) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color.Gray)
+                    ) {
+                        Text("Beri Ulasan", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
