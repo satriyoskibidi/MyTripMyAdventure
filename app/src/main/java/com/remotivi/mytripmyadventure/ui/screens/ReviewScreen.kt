@@ -5,12 +5,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.CloudUpload
@@ -26,13 +30,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.remotivi.mytripmyadventure.Screen
+import com.remotivi.mytripmyadventure.ui.components.ReviewData
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReviewScreen(navController: NavHostController) {
-    var rating by remember { mutableIntStateOf(4) }
+fun ReviewScreen(tripId: String, navController: NavHostController, onSaveReview: (ReviewData) -> Unit) {
+    var rating by remember { mutableIntStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
 
     Scaffold(
@@ -56,7 +62,6 @@ fun ReviewScreen(navController: NavHostController) {
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Trip Card Preview
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -67,10 +72,10 @@ fun ReviewScreen(navController: NavHostController) {
                     Box(modifier = Modifier.size(80.dp).background(Color.LightGray, RoundedCornerShape(12.dp)))
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text("Rinjani & NTB", fontWeight = FontWeight.Bold)
+                        Text(tripId.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(14.dp), tint = Color.Gray)
-                            Text("Lombok", fontSize = 12.sp, color = Color.Gray)
+                            Text("Lokasi Trip", fontSize = 12.sp, color = Color.Gray)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.CalendarToday, null, modifier = Modifier.size(14.dp), tint = Color.Gray)
@@ -82,7 +87,6 @@ fun ReviewScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Rating Section
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -144,14 +148,98 @@ fun ReviewScreen(navController: NavHostController) {
 
             Spacer(modifier = Modifier.height(32.dp))
             Button(
-                onClick = { navController.popBackStack() },
+                onClick = { 
+                    onSaveReview(ReviewData(tripId, rating, reviewText, "Baru saja"))
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                shape = RoundedCornerShape(28.dp)
+                shape = RoundedCornerShape(28.dp),
+                enabled = rating > 0 && reviewText.isNotBlank()
             ) {
                 Text("Kirim Ulasan", fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun ReviewSuccessScreen(navController: NavHostController) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            Icons.Default.CheckCircle,
+            null,
+            modifier = Modifier.size(100.dp),
+            tint = DarkGreen
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Ulasan Berhasil Terkirim!", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            "Terima kasih atas ulasanmu. Masukanmu sangat berharga bagi komunitas kami.",
+            textAlign = TextAlign.Center,
+            color = Color.Gray
+        )
+        Spacer(modifier = Modifier.height(48.dp))
+        Button(
+            onClick = { navController.navigate(Screen.MyReviews.route) { popUpTo(Screen.Home.route) } },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
+            shape = RoundedCornerShape(28.dp)
+        ) {
+            Text("Lihat Ulasan Saya", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun MyReviewsScreen(navController: NavHostController, reviews: List<ReviewData>) {
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+            }
+            Text("Ulasan Saya", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Icon(Icons.Default.Star, null, tint = Color.Transparent)
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        if (reviews.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Kamu belum memberikan ulasan apa pun.", color = Color.Gray)
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                items(reviews) { review ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, LightGrey)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(review.tripTitle.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.Bold)
+                                Text(review.date, fontSize = 12.sp, color = Color.Gray)
+                            }
+                            Row(modifier = Modifier.padding(vertical = 4.dp)) {
+                                (1..5).forEach { i ->
+                                    Icon(
+                                        Icons.Default.Star, null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = if (i <= review.rating) Color(0xFFF1C40F) else Color.LightGray
+                                    )
+                                }
+                            }
+                            Text(review.comment, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
         }
     }
 }

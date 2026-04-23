@@ -6,12 +6,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,17 +31,32 @@ data class TripData(
     val location: String,
     val date: String = "",
     val price: String,
+    val category: String = "Mountain",
     val imageRes: Int = 0,
-    val quota: String = ""
+    val quota: String = "",
+    var isFavorite: Boolean = false
 )
 
-data class Category(val name: String, val icon: ImageVector, val isSelected: Boolean = false)
+data class ReviewData(
+    val tripTitle: String,
+    val rating: Int,
+    val comment: String,
+    val date: String
+)
+
+data class Category(val name: String, val icon: ImageVector)
 
 @Composable
-fun SearchBar(modifier: Modifier = Modifier) {
+fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         TextField(
-            value = "", onValueChange = {}, placeholder = { Text("Search your location", color = Color.Gray) },
+            value = query,
+            onValueChange = onQueryChange,
+            placeholder = { Text("Search your location", color = Color.Gray) },
             leadingIcon = { Icon(Icons.Default.Search, null, tint = Color.Gray) },
             modifier = Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(28.dp)),
             colors = TextFieldDefaults.colors(
@@ -48,7 +64,8 @@ fun SearchBar(modifier: Modifier = Modifier) {
                 unfocusedContainerColor = LightGrey,
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent
-            )
+            ),
+            singleLine = true
         )
         Spacer(modifier = Modifier.width(12.dp))
         Box(modifier = Modifier.size(56.dp).background(LightGrey, RoundedCornerShape(28.dp)), contentAlignment = Alignment.Center) {
@@ -58,7 +75,14 @@ fun SearchBar(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun TripItemCard(trip: TripData, status: String = "", onClick: () -> Unit = {}) {
+fun TripItemCard(
+    trip: TripData,
+    status: String = "",
+    isFavorite: Boolean = false,
+    showFavoriteIcon: Boolean = true,
+    onToggleFavorite: () -> Unit = {},
+    onClick: () -> Unit = {}
+) {
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -90,12 +114,18 @@ fun TripItemCard(trip: TripData, status: String = "", onClick: () -> Unit = {}) 
                         )
                     }
                 }
-                Icon(
-                    Icons.Outlined.FavoriteBorder,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
-                )
+                if (showFavoriteIcon) {
+                    IconButton(
+                        onClick = onToggleFavorite,
+                        modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
+                    ) {
+                        Icon(
+                            if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = "Favorite",
+                            tint = if (isFavorite) Color.Red else Color.White
+                        )
+                    }
+                }
             }
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(trip.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
@@ -115,16 +145,30 @@ fun TripItemCard(trip: TripData, status: String = "", onClick: () -> Unit = {}) 
 }
 
 @Composable
-fun CategoryChip(category: Category) {
+fun CategoryChip(category: Category, isSelected: Boolean, onClick: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(50.dp)
-            .background(if (category.isSelected) LightCream else LightGrey, RoundedCornerShape(25.dp))
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .clip(RoundedCornerShape(25.dp))
+            .background(if (isSelected) LightCream else LightGrey)
+            .clickable { onClick() }
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(category.icon, null, modifier = Modifier.size(20.dp), tint = if (category.isSelected) Color.Black else Color.Gray)
+        Icon(
+            category.icon,
+            null,
+            modifier = Modifier.size(20.dp),
+            tint = if (isSelected) PriceOrange else Color.Gray
+        )
         Spacer(modifier = Modifier.width(8.dp))
-        Text(category.name, fontSize = 14.sp, color = if (category.isSelected) PriceOrange else Color.Gray)
+        Text(
+            category.name,
+            fontSize = 14.sp,
+            color = if (isSelected) PriceOrange else Color.Gray,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+        )
     }
 }
 

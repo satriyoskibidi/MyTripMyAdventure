@@ -6,11 +6,10 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,25 +19,25 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.components.*
-import com.remotivi.mytripmyadventure.ui.theme.*
 
 @Composable
-fun HomeScreen(navController: NavHostController) {
+fun HomeScreen(navController: NavHostController, allTrips: MutableList<TripData>) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("Mountain") }
+    
     val categories = listOf(
-        Category("Mountain", Icons.Default.Terrain, true),
+        Category("Mountain", Icons.Default.Terrain),
         Category("Beach", Icons.Default.BeachAccess),
         Category("Waterfall", Icons.Default.Waves),
         Category("City", Icons.Default.LocationCity)
     )
 
-    val featuredTrips = listOf(
-        TripData("Bromo & Malang", "Malang, East Java", "01 Mei - 04 Mei", "Rp3.000.000"),
-        TripData("Merbabu & Central...", "Magelang", "08 Mei - 10 Mei", "Rp1.800.000"),
-        TripData("Rinjani & NTB", "Lombok", "01 Mei - 04 Mei", "Rp5.000.000"),
-        TripData("Raja Ampat & Papua", "Sorong", "01 Mei - 04 Mei", "Rp5.000.000"),
-        TripData("Banda Neira & Maluku", "Maluku Tengah", "01 Mei - 04 Mei", "Rp5.000.000"),
-        TripData("Tanah Lot & Bali", "Tabanan", "01 Mei - 04 Mei", "Rp5.000.000")
-    )
+    val filteredTrips = allTrips.filter { trip ->
+        val matchesCategory = trip.category == selectedCategory
+        val matchesSearch = trip.title.contains(searchQuery, ignoreCase = true) || 
+                          trip.location.contains(searchQuery, ignoreCase = true)
+        matchesCategory && matchesSearch
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -58,7 +57,10 @@ fun HomeScreen(navController: NavHostController) {
                 Spacer(modifier = Modifier.height(20.dp))
                 Text("Let’s Choose\nYour Trip", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 Spacer(modifier = Modifier.height(20.dp))
-                SearchBar()
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it }
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
                 Text("Categories", fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -66,7 +68,13 @@ fun HomeScreen(navController: NavHostController) {
             }
         }
 
-        items(categories) { category -> CategoryChip(category) }
+        items(categories) { category -> 
+            CategoryChip(
+                category = category,
+                isSelected = selectedCategory == category.name,
+                onClick = { selectedCategory = category.name }
+            ) 
+        }
 
         item(span = { GridItemSpan(2) }) {
             Column {
@@ -79,8 +87,30 @@ fun HomeScreen(navController: NavHostController) {
             }
         }
 
-        items(featuredTrips) { trip -> 
-            TripItemCard(trip, onClick = { navController.navigate("trip_detail/${trip.title}") }) 
+        if (filteredTrips.isEmpty()) {
+            item(span = { GridItemSpan(2) }) {
+                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                    Text("No trips found", color = Color.Gray)
+                }
+            }
+        } else {
+            items(filteredTrips) { trip -> 
+                TripItemCard(
+                    trip = trip,
+                    isFavorite = trip.isFavorite,
+                    onToggleFavorite = {
+                        val index = allTrips.indexOf(trip)
+                        if (index != -1) {
+                            allTrips[index] = allTrips[index].copy(isFavorite = !allTrips[index].isFavorite)
+                        }
+                    },
+                    onClick = { navController.navigate("trip_detail/${trip.title}") }
+                ) 
+            }
+        }
+        
+        item(span = { GridItemSpan(2) }) {
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }

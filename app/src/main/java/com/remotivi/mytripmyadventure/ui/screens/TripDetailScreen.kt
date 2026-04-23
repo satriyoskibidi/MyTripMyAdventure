@@ -13,21 +13,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.remotivi.mytripmyadventure.ui.components.TripData
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 import com.remotivi.mytripmyadventure.ui.theme.PriceOrange
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TripDetailScreen(tripId: String, navController: NavHostController) {
+fun TripDetailScreen(tripId: String, navController: NavHostController, allTrips: List<TripData>) {
+    // Cari data trip berdasarkan judul (tripId)
+    val trip = allTrips.find { it.title == tripId } ?: allTrips[0]
+
     Scaffold(
         bottomBar = {
             Surface(tonalElevation = 8.dp, color = Color.White) {
@@ -40,10 +42,10 @@ fun TripDetailScreen(tripId: String, navController: NavHostController) {
                 ) {
                     Column {
                         Text("Total Harga", fontSize = 12.sp, color = Color.Gray)
-                        Text("Rp3.000.000/orang", color = PriceOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("${trip.price}/orang", color = PriceOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     }
                     Button(
-                        onClick = { navController.navigate("payment/$tripId") },
+                        onClick = { navController.navigate("payment/${trip.title}") },
                         colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.height(52.dp).width(140.dp)
@@ -61,8 +63,15 @@ fun TripDetailScreen(tripId: String, navController: NavHostController) {
                 .verticalScroll(rememberScrollState())
         ) {
             Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
-                // Image Placeholder
-                Box(modifier = Modifier.fillMaxSize().background(Color.LightGray))
+                // Image Placeholder (Bisa disesuaikan warnanya berdasarkan kategori)
+                Box(modifier = Modifier.fillMaxSize().background(
+                    when(trip.category) {
+                        "Beach" -> Color(0xFFAED6F1)
+                        "Waterfall" -> Color(0xFFD5F5E3)
+                        "City" -> Color(0xFFEBEDEF)
+                        else -> Color.LightGray
+                    }
+                ))
                 
                 IconButton(
                     onClick = { navController.popBackStack() },
@@ -80,7 +89,7 @@ fun TripDetailScreen(tripId: String, navController: NavHostController) {
                 color = Color.White
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text("Bromo & Malang Trip", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                    Text(trip.title, fontSize = 26.sp, fontWeight = FontWeight.Bold)
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
                         Icon(Icons.Default.Star, null, tint = Color(0xFFF1C40F), modifier = Modifier.size(18.dp))
                         Text(" 4.8 (100 review) | Open Trip", fontSize = 13.sp, color = Color.Gray)
@@ -92,8 +101,8 @@ fun TripDetailScreen(tripId: String, navController: NavHostController) {
                         colors = CardDefaults.cardColors(containerColor = LightGrey.copy(alpha = 0.2f))
                     ) {
                         Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                            InfoItemDetail(Icons.Default.LocationOn, "Malang, East Java")
-                            InfoItemDetail(Icons.Default.CalendarToday, "01 Mei - 04 Mei")
+                            InfoItemDetail(Icons.Default.LocationOn, trip.location)
+                            InfoItemDetail(Icons.Default.CalendarToday, trip.date.ifEmpty { "TBA" })
                             InfoItemDetail(Icons.Default.People, "8/12 Peserta")
                         }
                     }
@@ -106,7 +115,7 @@ fun TripDetailScreen(tripId: String, navController: NavHostController) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Harga per orang", fontSize = 14.sp)
-                                Text("Rp3.000.000/orang", fontWeight = FontWeight.Bold, color = PriceOrange, fontSize = 18.sp)
+                                Text("${trip.price}/orang", fontWeight = FontWeight.Bold, color = PriceOrange, fontSize = 18.sp)
                             }
                             Surface(color = Color(0xFFD5E8D4), shape = RoundedCornerShape(8.dp)) {
                                 Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -121,24 +130,25 @@ fun TripDetailScreen(tripId: String, navController: NavHostController) {
                     Text("Tentang Trip", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Trip ini merupakan perjalanan selama 3 hari 2 malam yang akan mengajak kamu menjelajahi keindahan alam dan wisata populer di Bromo dan Malang.",
+                        "Nikmati pengalaman tak terlupakan menjelajahi keindahan ${trip.title} di ${trip.location}. Trip ini dirancang khusus untuk kamu yang ingin melepas penat dan menikmati alam.",
                         fontSize = 14.sp, color = Color.Gray, lineHeight = 20.sp
                     )
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("Itinerary", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Spacer(modifier = Modifier.height(16.dp))
-                    ItineraryItemDetail("Hari ke- 1 | Malang City Tour", "08.00 - 18.00", "Tiba di Malang, museum, alun-alun, dan wisata kuliner.")
-                    ItineraryItemDetail("Hari ke- 2 | Bromo Sunrise Tour", "00.30 - 14.00", "Berangkat dini hari ke Bromo, sunrise, kawah, padang savana.")
-                    ItineraryItemDetail("Hari ke- 3 | Air Terjun & Kembali", "07.00 - 16.00", "Mengunjungi air terjun Madakaripura, oleh-oleh, kembali ke kota.")
+                    // Itinerary bisa dibuat lebih dinamis nanti, sementara ini dummy dengan teks trip
+                    ItineraryItemDetail("Hari ke- 1 | Arrival", "08.00 - 18.00", "Penjemputan di meeting point dan menuju lokasi utama.")
+                    ItineraryItemDetail("Hari ke- 2 | Explore Day", "04.30 - 20.00", "Full day tour menikmati spot terbaik di ${trip.title}.")
+                    ItineraryItemDetail("Hari ke- 3 | Closing & Return", "07.00 - 16.00", "Beli oleh-oleh dan kembali ke titik penjemputan.")
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("Fasilitas", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FacilityChipDetail(Icons.Default.DirectionsBus, "Transportasi")
+                        FacilityChipDetail(Icons.Default.DirectionsBus, "Transport")
                         FacilityChipDetail(Icons.Default.Hotel, "Penginapan")
-                        FacilityChipDetail(Icons.Default.ConfirmationNumber, "Tiket Masuk")
+                        FacilityChipDetail(Icons.Default.ConfirmationNumber, "Tiket")
                         FacilityChipDetail(Icons.Default.Restaurant, "Makan")
                     }
                     Spacer(modifier = Modifier.height(100.dp))

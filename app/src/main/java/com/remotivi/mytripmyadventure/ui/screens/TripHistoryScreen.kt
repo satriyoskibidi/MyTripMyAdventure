@@ -78,11 +78,12 @@ fun TripHistoryScreen(navController: NavHostController) {
                 item {
                     TripItemCard(
                         trip = TripData("Bromo & Malang", "Malang, East Java", "01 Mei - 04 Mei", "Rp3.000.000"),
-                        status = "Active"
+                        status = "Active",
+                        showFavoriteIcon = false
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = {},
+                        onClick = { navController.navigate("e_ticket/bromo") },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE67E22)),
                         shape = RoundedCornerShape(12.dp)
@@ -97,7 +98,8 @@ fun TripHistoryScreen(navController: NavHostController) {
                 item {
                     TripItemCard(
                         trip = TripData("Merbabu & Central..", "Magelang", "08 Mei - 10 Mei", "Rp1.800.000"),
-                        status = "Menunggu Pembayaran"
+                        status = "Menunggu Pembayaran",
+                        showFavoriteIcon = false
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
@@ -116,7 +118,8 @@ fun TripHistoryScreen(navController: NavHostController) {
                 item {
                     TripItemCard(
                         trip = TripData("Rinjani & NTB", "Lombok", "01 Mei - 04 Mei", "Rp5.000.000"),
-                        status = "Completed"
+                        status = "Completed",
+                        showFavoriteIcon = false
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(

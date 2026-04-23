@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.EventNote
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -24,6 +25,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.remotivi.mytripmyadventure.ui.components.ReviewData
+import com.remotivi.mytripmyadventure.ui.components.TripData
 import com.remotivi.mytripmyadventure.ui.screens.*
 import com.remotivi.mytripmyadventure.ui.theme.*
 
@@ -55,14 +58,18 @@ sealed class Screen(val route: String, val icon: ImageVector, val label: String)
     // Other screens
     object TripDetail : Screen("trip_detail/{tripId}", Icons.Default.Info, "Detail")
     object Payment : Screen("payment/{tripId}", Icons.Default.Payment, "Payment")
-    object Review : Screen("review", Icons.Default.RateReview, "Review")
+    object Review : Screen("review/{tripId}", Icons.Default.RateReview, "Review")
     object Notifications : Screen("notif", Icons.Default.Notifications, "Notifications")
     object Chat : Screen("chat", Icons.AutoMirrored.Filled.Message, "Chat")
     object DetailChat : Screen("detail_chat/{name}", Icons.AutoMirrored.Filled.Message, "Detail Chat")
     object Security : Screen("security", Icons.Default.Shield, "Security")
     object Matching : Screen("matching", Icons.Default.People, "Matching")
-    object Planner : Screen("planner", Icons.Default.EventNote, "Planner")
+    object Planner : Screen("planner", Icons.AutoMirrored.Filled.EventNote, "Planner")
     object Budget : Screen("budget", Icons.Default.AccountBalanceWallet, "Budget")
+    object EditPreferences : Screen("edit_preferences", Icons.Default.Settings, "Edit Preferences")
+    object ETicket : Screen("e_ticket/{tripId}", Icons.Default.ConfirmationNumber, "E-Ticket")
+    object ReviewSuccess : Screen("review_success", Icons.Default.CheckCircle, "Review Success")
+    object MyReviews : Screen("my_reviews", Icons.Default.Star, "My Reviews")
 }
 
 @Composable
@@ -70,6 +77,22 @@ fun MainApp() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // Shared state for trips
+    val allTrips = remember { mutableStateListOf(
+        TripData("Bromo & Malang", "Malang, East Java", "01 Mei - 04 Mei", "Rp3.000.000", "Mountain"),
+        TripData("Merbabu & Central...", "Magelang", "08 Mei - 10 Mei", "Rp1.800.000", "Mountain"),
+        TripData("Rinjani & NTB", "Lombok", "01 Mei - 04 Mei", "Rp5.000.000", "Mountain"),
+        TripData("Kuta Beach", "Bali", "10 Jun - 12 Jun", "Rp2.500.000", "Beach"),
+        TripData("Pink Beach", "Labuan Bajo", "15 Jun - 18 Jun", "Rp4.000.000", "Beach"),
+        TripData("Tumpak Sewu", "Lumajang", "05 Jul - 07 Jul", "Rp1.500.000", "Waterfall"),
+        TripData("Madakaripura", "Probolinggo", "12 Jul - 14 Jul", "Rp1.200.000", "Waterfall"),
+        TripData("Jakarta City Tour", "DKI Jakarta", "20 Agu - 22 Aug", "Rp1.000.000", "City"),
+        TripData("Bandung Heritage", "Bandung", "25 Agu - 27 Aug", "Rp1.300.000", "City")
+    ) }
+
+    // Shared state for reviews
+    val allReviews = remember { mutableStateListOf<ReviewData>() }
 
     Scaffold(
         bottomBar = {
@@ -85,10 +108,14 @@ fun MainApp() {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { HomeScreen(navController) }
+            composable(Screen.Home.route) { 
+                HomeScreen(navController, allTrips) 
+            }
             composable(Screen.MyTrips.route) { TripHistoryScreen(navController) }
             composable(Screen.CreateTripIntro.route) { CreateTripIntroScreen(navController) }
-            composable(Screen.Favorite.route) { FavoriteScreen() }
+            composable(Screen.Favorite.route) { 
+                FavoriteScreen(navController, allTrips) 
+            }
             composable(Screen.Profile.route) { ProfileScreen(navController) }
             
             composable(Screen.CreateTripStep1.route) { CreateTripStep1Screen(navController) }
@@ -98,13 +125,21 @@ fun MainApp() {
             
             composable(Screen.TripDetail.route) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
-                TripDetailScreen(tripId, navController)
+                TripDetailScreen(tripId, navController, allTrips)
             }
             composable(Screen.Payment.route) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
                 PaymentScreen(tripId, navController)
             }
-            composable(Screen.Review.route) { ReviewScreen(navController) }
+            composable(Screen.Review.route) { backStackEntry ->
+                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                ReviewScreen(tripId = tripId, navController = navController, onSaveReview = { review: ReviewData ->
+                    allReviews.add(review)
+                    navController.navigate(Screen.ReviewSuccess.route)
+                })
+            }
+            composable(Screen.ReviewSuccess.route) { ReviewSuccessScreen(navController) }
+            composable(Screen.MyReviews.route) { MyReviewsScreen(navController, allReviews) }
             
             composable(Screen.Notifications.route) { NotificationScreen() }
             composable(Screen.Chat.route) { ChatScreen(navController) }
@@ -113,9 +148,14 @@ fun MainApp() {
                 DetailChatScreen(name, navController)
             }
             composable(Screen.Security.route) { SecurityScreen() }
-            composable(Screen.Matching.route) { MatchingScreen() }
-            composable(Screen.Planner.route) { PlannerScreen() }
-            composable(Screen.Budget.route) { BudgetScreen() }
+            composable(Screen.Matching.route) { MatchingScreen(navController) }
+            composable(Screen.Planner.route) { PlannerScreen(navController) }
+            composable(Screen.Budget.route) { BudgetScreen(navController) }
+            composable(Screen.EditPreferences.route) { EditPreferencesScreen(navController) }
+            composable(Screen.ETicket.route) { backStackEntry ->
+                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                ETicketScreen(tripId, navController)
+            }
         }
     }
 }
