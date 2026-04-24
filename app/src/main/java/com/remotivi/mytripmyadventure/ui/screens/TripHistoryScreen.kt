@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,7 +28,7 @@ import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 
 @Composable
-fun TripHistoryScreen(navController: NavHostController) {
+fun TripHistoryScreen(navController: NavHostController, allTrips: SnapshotStateList<TripData>) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Trip Mendatang", "Trip Lampau")
 
@@ -73,17 +74,17 @@ fun TripHistoryScreen(navController: NavHostController) {
         Spacer(modifier = Modifier.height(24.dp))
 
         if (selectedTab == 0) {
-            // Mock On Going
             LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 item {
+                    val bromoTrip = allTrips.find { it.title.contains("Bromo") } ?: allTrips[0]
                     TripItemCard(
-                        trip = TripData("Bromo & Malang", "Malang, East Java", "01 Mei - 04 Mei", "Rp3.000.000"),
+                        trip = bromoTrip,
                         status = "Active",
                         showFavoriteIcon = false
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = { navController.navigate("e_ticket/bromo") },
+                        onClick = { navController.navigate("e_ticket/${bromoTrip.title}") },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE67E22)),
                         shape = RoundedCornerShape(12.dp)
@@ -96,14 +97,15 @@ fun TripHistoryScreen(navController: NavHostController) {
                     }
                 }
                 item {
+                    val merbabuTrip = allTrips.find { it.title.contains("Merbabu") } ?: allTrips[1]
                     TripItemCard(
-                        trip = TripData("Merbabu & Central..", "Magelang", "08 Mei - 10 Mei", "Rp1.800.000"),
+                        trip = merbabuTrip,
                         status = "Menunggu Pembayaran",
                         showFavoriteIcon = false
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        onClick = { navController.navigate("payment/merbabu") },
+                        onClick = { navController.navigate("payment/${merbabuTrip.title}") },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE67E22)),
                         shape = RoundedCornerShape(12.dp)
@@ -113,17 +115,17 @@ fun TripHistoryScreen(navController: NavHostController) {
                 }
             }
         } else {
-            // Mock History
             LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 item {
+                    val rinjaniTrip = allTrips.find { it.title.contains("Rinjani") } ?: allTrips[2]
                     TripItemCard(
-                        trip = TripData("Rinjani & NTB", "Lombok", "01 Mei - 04 Mei", "Rp5.000.000"),
+                        trip = rinjaniTrip,
                         status = "Completed",
                         showFavoriteIcon = false
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedButton(
-                        onClick = { navController.navigate(Screen.Review.route) },
+                        onClick = { navController.navigate("review/${rinjaniTrip.title}") },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp),
                         border = BorderStroke(1.dp, Color.Gray)

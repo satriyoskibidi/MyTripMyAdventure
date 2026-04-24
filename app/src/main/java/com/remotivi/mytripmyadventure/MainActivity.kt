@@ -78,17 +78,14 @@ fun MainApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Shared state for trips
+    // Shared state for trips with drawable resources
     val allTrips = remember { mutableStateListOf(
-        TripData("Bromo & Malang", "Malang, East Java", "01 Mei - 04 Mei", "Rp3.000.000", "Mountain"),
-        TripData("Merbabu & Central...", "Magelang", "08 Mei - 10 Mei", "Rp1.800.000", "Mountain"),
-        TripData("Rinjani & NTB", "Lombok", "01 Mei - 04 Mei", "Rp5.000.000", "Mountain"),
-        TripData("Kuta Beach", "Bali", "10 Jun - 12 Jun", "Rp2.500.000", "Beach"),
-        TripData("Pink Beach", "Labuan Bajo", "15 Jun - 18 Jun", "Rp4.000.000", "Beach"),
-        TripData("Tumpak Sewu", "Lumajang", "05 Jul - 07 Jul", "Rp1.500.000", "Waterfall"),
-        TripData("Madakaripura", "Probolinggo", "12 Jul - 14 Jul", "Rp1.200.000", "Waterfall"),
-        TripData("Jakarta City Tour", "DKI Jakarta", "20 Agu - 22 Aug", "Rp1.000.000", "City"),
-        TripData("Bandung Heritage", "Bandung", "25 Agu - 27 Aug", "Rp1.300.000", "City")
+        TripData("Bromo & Malang", "Malang, East Java", "01 Mei - 04 Mei", "Rp3.000.000", "Mountain", R.drawable.bromo),
+        TripData("Merbabu Hike", "Magelang", "08 Mei - 10 Mei", "Rp1.800.000", "Mountain", R.drawable.merbabu),
+        TripData("Rinjani & NTB", "Lombok", "01 Mei - 04 Mei", "Rp5.000.000", "Mountain", R.drawable.rinjani),
+        TripData("Raja Ampat & Papua", "Sorong", "15 Jun - 20 Jun", "Rp5.000.000", "Beach", R.drawable.rajaampat),
+        TripData("Banda Neira", "Maluku Tengah", "05 Jul - 07 Jul", "Rp5.000.000", "City", R.drawable.bandaneira),
+        TripData("Tanah Lot & Bali", "Tabanan", "12 Jul - 14 Jul", "Rp5.000.000", "Beach", R.drawable.tanahlot)
     ) }
 
     // Shared state for reviews
@@ -111,7 +108,7 @@ fun MainApp() {
             composable(Screen.Home.route) { 
                 HomeScreen(navController, allTrips) 
             }
-            composable(Screen.MyTrips.route) { TripHistoryScreen(navController) }
+            composable(Screen.MyTrips.route) { TripHistoryScreen(navController, allTrips) }
             composable(Screen.CreateTripIntro.route) { CreateTripIntroScreen(navController) }
             composable(Screen.Favorite.route) { 
                 FavoriteScreen(navController, allTrips) 
@@ -129,7 +126,7 @@ fun MainApp() {
             }
             composable(Screen.Payment.route) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
-                PaymentScreen(tripId, navController)
+                PaymentScreen(tripId, navController, allTrips)
             }
             composable(Screen.Review.route) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
@@ -154,7 +151,7 @@ fun MainApp() {
             composable(Screen.EditPreferences.route) { EditPreferencesScreen(navController) }
             composable(Screen.ETicket.route) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
-                ETicketScreen(tripId, navController)
+                ETicketScreen(tripId, navController, allTrips)
             }
         }
     }
@@ -172,7 +169,7 @@ fun AppBottomNavigation(navController: NavHostController) {
     ) {
         Row(
             modifier = Modifier
-                .padding(vertical = 12.dp, horizontal = 16.dp)
+                .padding(vertical = 12.dp, horizontal = 24.dp)
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically

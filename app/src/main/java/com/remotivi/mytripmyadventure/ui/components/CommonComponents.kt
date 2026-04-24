@@ -1,5 +1,6 @@
 package com.remotivi.mytripmyadventure.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,6 +53,7 @@ data class Category(val name: String, val icon: ImageVector)
 fun SearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
+    onFilterClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -68,7 +72,14 @@ fun SearchBar(
             singleLine = true
         )
         Spacer(modifier = Modifier.width(12.dp))
-        Box(modifier = Modifier.size(56.dp).background(LightGrey, RoundedCornerShape(28.dp)), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .background(LightGrey)
+                .clickable { onFilterClick() },
+            contentAlignment = Alignment.Center
+        ) {
             Icon(Icons.Default.Tune, null)
         }
     }
@@ -90,25 +101,32 @@ fun TripItemCard(
         modifier = Modifier.fillMaxWidth().clickable { onClick() }
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().height(120.dp).background(Color(0xFFBDC3C7))) {
+            Box(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+                if (trip.imageRes != 0) {
+                    Image(
+                        painter = painterResource(id = trip.imageRes),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFBDC3C7)))
+                }
+                
                 if (status.isNotEmpty()) {
                     Surface(
                         modifier = Modifier.padding(8.dp).align(Alignment.TopStart),
                         color = when(status) {
-                            "Active", "Terkonfirmasi" -> Color(0xFF27AE60).copy(alpha = 0.1f)
-                            "Menunggu Pembayaran" -> Color(0xFFF39C12).copy(alpha = 0.1f)
-                            else -> Color.Gray.copy(alpha = 0.1f)
+                            "Active", "Terkonfirmasi" -> Color(0xFF27AE60).copy(alpha = 0.8f)
+                            "Menunggu Pembayaran" -> Color(0xFFF39C12).copy(alpha = 0.8f)
+                            else -> Color.Gray.copy(alpha = 0.8f)
                         },
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             status,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            color = when(status) {
-                                "Active", "Terkonfirmasi" -> Color(0xFF27AE60)
-                                "Menunggu Pembayaran" -> Color(0xFFE67E22)
-                                else -> Color.DarkGray
-                            },
+                            color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )

@@ -22,13 +22,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.remotivi.mytripmyadventure.ui.components.TripData
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 import com.remotivi.mytripmyadventure.ui.theme.PriceOrange
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ETicketScreen(tripId: String, navController: NavHostController) {
+fun ETicketScreen(tripId: String, navController: NavHostController, allTrips: List<TripData>) {
+    val trip = allTrips.find { it.title == tripId } ?: allTrips[0]
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -60,7 +63,7 @@ fun ETicketScreen(tripId: String, navController: NavHostController) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     // Header Trip Info
                     Column(modifier = Modifier.padding(24.dp)) {
-                        Text("Bromo & Malang Trip", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DarkGreen)
+                        Text(trip.title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DarkGreen)
                         Text("Terkonfirmasi", color = Color(0xFF27AE60), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         
                         Spacer(modifier = Modifier.height(24.dp))
@@ -73,12 +76,12 @@ fun ETicketScreen(tripId: String, navController: NavHostController) {
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TicketInfoItem("Tanggal Berangkat", "01 Mei 2024")
+                            TicketInfoItem("Tanggal Berangkat", trip.date.ifEmpty { "01 Mei 2024" })
                             TicketInfoItem("Meeting Point", "Stasiun Malang", Alignment.End)
                         }
                     }
 
-                    // Dashed Line (Tear effect)
+                    // Dashed Line
                     TicketDividerEffect()
 
                     // QR Code and Payment Info
@@ -117,7 +120,7 @@ fun ETicketScreen(tripId: String, navController: NavHostController) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Total Bayar", fontWeight = FontWeight.Bold, color = DarkGreen)
-                            Text("Rp 3.000.000", fontWeight = FontWeight.Bold, color = PriceOrange)
+                            Text(trip.price, fontWeight = FontWeight.Bold, color = PriceOrange)
                         }
                     }
                 }

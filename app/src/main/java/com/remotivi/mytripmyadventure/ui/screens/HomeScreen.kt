@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,9 +22,10 @@ import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.components.*
 
 @Composable
-fun HomeScreen(navController: NavHostController, allTrips: MutableList<TripData>) {
+fun HomeScreen(navController: NavHostController, allTrips: SnapshotStateList<TripData>) {
     var searchQuery by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("Mountain") }
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var showCategories by remember { mutableStateOf(false) }
     
     val categories = listOf(
         Category("Mountain", Icons.Default.Terrain),
@@ -32,8 +34,13 @@ fun HomeScreen(navController: NavHostController, allTrips: MutableList<TripData>
         Category("City", Icons.Default.LocationCity)
     )
 
+    // Logika Filter: Tampilkan SEMUA trip jika panel kategori sedang ditutup
     val filteredTrips = allTrips.filter { trip ->
-        val matchesCategory = trip.category == selectedCategory
+        val matchesCategory = if (showCategories && selectedCategory != null) {
+            trip.category == selectedCategory
+        } else {
+            true // Tampilkan semua trip
+        }
         val matchesSearch = trip.title.contains(searchQuery, ignoreCase = true) || 
                           trip.location.contains(searchQuery, ignoreCase = true)
         matchesCategory && matchesSearch
@@ -57,23 +64,38 @@ fun HomeScreen(navController: NavHostController, allTrips: MutableList<TripData>
                 Spacer(modifier = Modifier.height(20.dp))
                 Text("Let’s Choose\nYour Trip", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 Spacer(modifier = Modifier.height(20.dp))
+                
+                // SearchBar dengan aksi klik Filter
                 SearchBar(
                     query = searchQuery,
-                    onQueryChange = { searchQuery = it }
+                    onQueryChange = { searchQuery = it },
+                    onFilterClick = { 
+                        showCategories = !showCategories
+                        // Jika dimatikan, reset kategori agar menampilkan semua trip kembali
+                        if (!showCategories) selectedCategory = null 
+                    }
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
-                Text("Categories", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(16.dp))
+                if (showCategories) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("Categories", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
 
-        items(categories) { category -> 
-            CategoryChip(
-                category = category,
-                isSelected = selectedCategory == category.name,
-                onClick = { selectedCategory = category.name }
-            ) 
+        // Tampilkan Categories hanya jika tombol filter diklik
+        if (showCategories) {
+            items(categories) { category -> 
+                CategoryChip(
+                    category = category,
+                    isSelected = selectedCategory == category.name,
+                    onClick = { 
+                        // Toggle kategori: jika klik yang sama, maka unselect
+                        selectedCategory = if (selectedCategory == category.name) null else category.name 
+                    }
+                ) 
+            }
         }
 
         item(span = { GridItemSpan(2) }) {
@@ -110,7 +132,7 @@ fun HomeScreen(navController: NavHostController, allTrips: MutableList<TripData>
         }
         
         item(span = { GridItemSpan(2) }) {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.remotivi.mytripmyadventure.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,19 +16,25 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.remotivi.mytripmyadventure.R
+import com.remotivi.mytripmyadventure.ui.components.TripData
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 import com.remotivi.mytripmyadventure.ui.theme.PriceOrange
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PaymentScreen(tripId: String, navController: NavHostController) {
+fun PaymentScreen(tripId: String, navController: NavHostController, allTrips: List<TripData>) {
     var selectedMethod by remember { mutableStateOf("Bank BCA") }
+    val trip = allTrips.find { it.title == tripId } ?: allTrips[0]
 
     Scaffold(
         topBar = {
@@ -70,14 +77,23 @@ fun PaymentScreen(tripId: String, navController: NavHostController) {
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
+                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                     Row(modifier = Modifier.padding(12.dp)) {
-                        Box(modifier = Modifier.size(100.dp).background(Color.LightGray, RoundedCornerShape(12.dp)))
+                        if (trip.imageRes != 0) {
+                            Image(
+                                painter = painterResource(id = trip.imageRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(modifier = Modifier.size(100.dp).background(Color.LightGray, RoundedCornerShape(12.dp)))
+                        }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text("Rinjani & NTB", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text("Malang, Jawa Timur", fontSize = 12.sp, color = Color.Gray)
-                            Text("24 April - 26 April 2026", fontSize = 12.sp, color = Color.Gray)
+                            Text(trip.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(trip.location, fontSize = 12.sp, color = Color.Gray)
+                            Text(trip.date, fontSize = 12.sp, color = Color.Gray)
                         }
                     }
                 }
@@ -88,12 +104,12 @@ fun PaymentScreen(tripId: String, navController: NavHostController) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Rincian Pembayaran", fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(12.dp))
-                        PaymentDetailRow("Harga Perorang", "Rp3.000.000")
+                        PaymentDetailRow("Harga Perorang", trip.price)
                         PaymentDetailRow("Jumlah Peserta", "1 Orang")
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Total Pembayaran", fontWeight = FontWeight.Bold)
-                            Text("Rp3.000.000", color = PriceOrange, fontWeight = FontWeight.Bold)
+                            Text(trip.price, color = PriceOrange, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -103,11 +119,17 @@ fun PaymentScreen(tripId: String, navController: NavHostController) {
                 Text("Pilih Metode Pembayaran", fontWeight = FontWeight.Bold)
             }
 
-            items(listOf("Bank BCA", "Bank BNI", "Bank BRI", "QRIS", "Kartu Kredit/Debit")) { method ->
+            items(listOf(
+                PaymentMethodData("Bank BCA", R.drawable.bca),
+                PaymentMethodData("Bank BNI", R.drawable.bni),
+                PaymentMethodData("Bank BRI", R.drawable.bri),
+                PaymentMethodData("QRIS", R.drawable.qris),
+                PaymentMethodData("Kartu Kredit/Debit", 0)
+            )) { method ->
                 PaymentMethodItem(
-                    name = method,
-                    isSelected = selectedMethod == method,
-                    onSelect = { selectedMethod = method }
+                    method = method,
+                    isSelected = selectedMethod == method.name,
+                    onSelect = { selectedMethod = method.name }
                 )
             }
             
@@ -115,6 +137,8 @@ fun PaymentScreen(tripId: String, navController: NavHostController) {
         }
     }
 }
+
+data class PaymentMethodData(val name: String, val iconRes: Int)
 
 @Composable
 fun PaymentDetailRow(label: String, value: String) {
@@ -125,7 +149,7 @@ fun PaymentDetailRow(label: String, value: String) {
 }
 
 @Composable
-fun PaymentMethodItem(name: String, isSelected: Boolean, onSelect: () -> Unit) {
+fun PaymentMethodItem(method: PaymentMethodData, isSelected: Boolean, onSelect: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { onSelect() },
         shape = RoundedCornerShape(12.dp),
@@ -135,9 +159,17 @@ fun PaymentMethodItem(name: String, isSelected: Boolean, onSelect: () -> Unit) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             RadioButton(selected = isSelected, onClick = onSelect, colors = RadioButtonDefaults.colors(selectedColor = DarkGreen))
             Spacer(modifier = Modifier.width(12.dp))
-            Box(modifier = Modifier.size(40.dp).background(LightGrey, CircleShape))
+            if (method.iconRes != 0) {
+                Image(
+                    painter = painterResource(id = method.iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp)
+                )
+            } else {
+                Box(modifier = Modifier.size(40.dp).background(LightGrey, CircleShape))
+            }
             Spacer(modifier = Modifier.width(12.dp))
-            Text(name, fontWeight = FontWeight.Medium)
+            Text(method.name, fontWeight = FontWeight.Medium)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.remotivi.mytripmyadventure.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,15 +66,17 @@ fun TripDetailScreen(tripId: String, navController: NavHostController, allTrips:
                 .verticalScroll(rememberScrollState())
         ) {
             Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
-                // Image Placeholder (Bisa disesuaikan warnanya berdasarkan kategori)
-                Box(modifier = Modifier.fillMaxSize().background(
-                    when(trip.category) {
-                        "Beach" -> Color(0xFFAED6F1)
-                        "Waterfall" -> Color(0xFFD5F5E3)
-                        "City" -> Color(0xFFEBEDEF)
-                        else -> Color.LightGray
-                    }
-                ))
+                // Header Image from Drawable
+                if (trip.imageRes != 0) {
+                    Image(
+                        painter = painterResource(id = trip.imageRes),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize().background(Color.LightGray))
+                }
                 
                 IconButton(
                     onClick = { navController.popBackStack() },
@@ -96,14 +101,18 @@ fun TripDetailScreen(tripId: String, navController: NavHostController, allTrips:
                     }
                     
                     Spacer(modifier = Modifier.height(20.dp))
+                    
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = LightGrey.copy(alpha = 0.2f))
                     ) {
-                        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                            InfoItemDetail(Icons.Default.LocationOn, trip.location)
-                            InfoItemDetail(Icons.Default.CalendarToday, trip.date.ifEmpty { "TBA" })
-                            InfoItemDetail(Icons.Default.People, "8/12 Peserta")
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            InfoItemDetailRow(Icons.Default.LocationOn, trip.location)
+                            InfoItemDetailRow(Icons.Default.CalendarToday, trip.date.ifEmpty { "01 Mei - 04 Mei" })
+                            InfoItemDetailRow(Icons.Default.People, "8/12 Peserta")
                         }
                     }
                     
@@ -137,20 +146,23 @@ fun TripDetailScreen(tripId: String, navController: NavHostController, allTrips:
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("Itinerary", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Spacer(modifier = Modifier.height(16.dp))
-                    // Itinerary bisa dibuat lebih dinamis nanti, sementara ini dummy dengan teks trip
                     ItineraryItemDetail("Hari ke- 1 | Arrival", "08.00 - 18.00", "Penjemputan di meeting point dan menuju lokasi utama.")
                     ItineraryItemDetail("Hari ke- 2 | Explore Day", "04.30 - 20.00", "Full day tour menikmati spot terbaik di ${trip.title}.")
-                    ItineraryItemDetail("Hari ke- 3 | Closing & Return", "07.00 - 16.00", "Beli oleh-oleh dan kembali ke titik penjemputan.")
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     Text("Fasilitas", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
                         FacilityChipDetail(Icons.Default.DirectionsBus, "Transport")
                         FacilityChipDetail(Icons.Default.Hotel, "Penginapan")
                         FacilityChipDetail(Icons.Default.ConfirmationNumber, "Tiket")
                         FacilityChipDetail(Icons.Default.Restaurant, "Makan")
                     }
+                    
                     Spacer(modifier = Modifier.height(100.dp))
                 }
             }
@@ -159,11 +171,11 @@ fun TripDetailScreen(tripId: String, navController: NavHostController, allTrips:
 }
 
 @Composable
-fun InfoItemDetail(icon: ImageVector, text: String) {
+fun InfoItemDetailRow(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(text, fontSize = 11.sp, color = Color.Gray)
+        Icon(icon, null, modifier = Modifier.size(20.dp), tint = Color.Gray)
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(text, fontSize = 14.sp, color = Color.DarkGray)
     }
 }
 
@@ -175,7 +187,7 @@ fun ItineraryItemDetail(title: String, time: String, desc: String) {
             Box(modifier = Modifier.width(1.dp).height(80.dp).background(Color.Gray))
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = LightGrey.copy(alpha = 0.15f))) {
+        Card(modifier = Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = LightGrey.copy(alpha = 0.15f))) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Text(desc, fontSize = 13.sp, color = Color.Gray)
@@ -190,12 +202,20 @@ fun ItineraryItemDetail(title: String, time: String, desc: String) {
 }
 
 @Composable
-fun FacilityChipDetail(icon: ImageVector, label: String) {
-    Surface(color = LightGrey.copy(alpha = 0.5f), shape = RoundedCornerShape(12.dp)) {
-        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, modifier = Modifier.size(16.dp), tint = Color.Gray)
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(label, fontSize = 10.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+fun RowScope.FacilityChipDetail(icon: ImageVector, label: String) {
+    Surface(
+        color = LightGrey.copy(alpha = 0.5f), 
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.weight(1f) 
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp), 
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, null, modifier = Modifier.size(14.dp), tint = Color.Gray)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(label, fontSize = 9.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium, maxLines = 1)
         }
     }
 }
