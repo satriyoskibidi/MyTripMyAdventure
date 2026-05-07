@@ -40,6 +40,11 @@ import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 fun ReviewScreen(tripId: String, navController: NavHostController, onSaveReview: (ReviewData) -> Unit) {
     var rating by remember { mutableIntStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
+    var showErrors by remember { mutableStateOf(false) }
+
+    val isRatingValid = rating > 0
+    val isReviewValid = reviewText.isNotBlank()
+    val isFormValid = isRatingValid && isReviewValid
 
     Scaffold(
         topBar = {
@@ -91,10 +96,10 @@ fun ReviewScreen(tripId: String, navController: NavHostController, onSaveReview:
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(2.dp),
-                border = BorderStroke(1.dp, LightGrey)
+                border = BorderStroke(1.dp, if (!isRatingValid && showErrors) Color.Red else LightGrey)
             ) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.Start) {
-                    Text("Bagaimana pengalaman Anda?", fontWeight = FontWeight.Bold)
+                    Text("Bagaimana pengalaman Anda? *", fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
                     Row {
                         (1..5).forEach { index ->
@@ -104,24 +109,40 @@ fun ReviewScreen(tripId: String, navController: NavHostController, onSaveReview:
                                 tint = if (index <= rating) Color(0xFFF1C40F) else Color.LightGray,
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .clickable { rating = index }
+                                    .clickable { 
+                                        rating = index 
+                                        showErrors = true
+                                    }
                             )
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Pilih rating Anda (1-5 bintang)", fontSize = 12.sp, color = Color.Gray)
+                    if (!isRatingValid && showErrors) {
+                        Text("Silakan pilih rating", color = Color.Red, fontSize = 12.sp)
+                    } else {
+                        Text("Pilih rating Anda (1-5 bintang)", fontSize = 12.sp, color = Color.Gray)
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Text("Tulis ulasan Anda (maksimal 500 karakter)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("Tulis ulasan Anda * (maksimal 500 karakter)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = reviewText,
-                onValueChange = { if (it.length <= 500) reviewText = it },
+                onValueChange = { 
+                    if (it.length <= 500) reviewText = it 
+                    showErrors = true
+                },
                 placeholder = { Text("Bagikan detail tentang pemandu, akomodasi, pemandangan, dan lainnya...", fontSize = 12.sp) },
                 modifier = Modifier.fillMaxWidth().height(120.dp),
                 shape = RoundedCornerShape(12.dp),
+                isError = !isReviewValid && showErrors,
+                supportingText = {
+                    if (!isReviewValid && showErrors) {
+                        Text("Ulasan tidak boleh kosong", color = Color.Red)
+                    }
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedBorderColor = Color.Gray,
                     focusedBorderColor = DarkGreen
@@ -149,12 +170,18 @@ fun ReviewScreen(tripId: String, navController: NavHostController, onSaveReview:
             Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = { 
-                    onSaveReview(ReviewData(tripId, rating, reviewText, "Baru saja"))
+                    if (isFormValid) {
+                        onSaveReview(ReviewData(tripId, rating, reviewText, "Baru saja"))
+                    } else {
+                        showErrors = true
+                    }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isFormValid) DarkGreen else Color.Gray
+                ),
                 shape = RoundedCornerShape(28.dp),
-                enabled = rating > 0 && reviewText.isNotBlank()
+                enabled = isFormValid
             ) {
                 Text("Kirim Ulasan", fontWeight = FontWeight.Bold)
             }
