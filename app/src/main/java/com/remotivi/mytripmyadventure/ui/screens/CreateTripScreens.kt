@@ -31,6 +31,7 @@ import androidx.navigation.NavHostController
 import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @Composable
 fun CreateTripIntroScreen(navController: NavHostController) {
@@ -330,11 +331,30 @@ fun ItineraryStepItem(title: String, desc: String, onRemove: () -> Unit) {
 
 @Composable
 fun CreateTripStep3Screen(navController: NavHostController) {
-    val selectedTransport = remember { mutableStateListOf("Motor") }
-    val selectedAcomodation = remember { mutableStateOf("Hotel") }
-    val selectedMakan = remember { mutableStateOf("Termasuk") }
-    val selectedTiket = remember { mutableStateOf("Termasuk") }
-    val selectedLainnya = remember { mutableStateListOf("Air Mineral", "Asuransi", "Dokumentasi", "Snack") }
+    val selectedTransport = remember {
+        mutableStateListOf("Motor")
+    }
+
+    val selectedAcomodation = rememberSaveable {
+        mutableStateOf("Hotel")
+    }
+
+    val selectedMakan = rememberSaveable {
+        mutableStateOf("Termasuk")
+    }
+
+    val selectedTiket = rememberSaveable {
+        mutableStateOf("Termasuk")
+    }
+
+    val selectedLainnya = remember {
+        mutableStateListOf(
+            "Air Mineral",
+            "Asuransi",
+            "Dokumentasi",
+            "Snack"
+        )
+    }
 
     val isFormValid = selectedTransport.isNotEmpty() && selectedAcomodation.value.isNotEmpty()
 
@@ -372,7 +392,11 @@ fun FacilitySectionMulti(title: String, items: List<String>, selectedItems: Muta
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         Spacer(modifier = Modifier.height(8.dp))
-        androidx.compose.foundation.layout.FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 4) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(), 
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items.forEach { item ->
                 val isSelected = selectedItems.contains(item)
                 Surface(
