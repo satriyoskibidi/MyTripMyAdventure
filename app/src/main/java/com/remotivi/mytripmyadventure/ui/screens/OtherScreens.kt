@@ -78,10 +78,12 @@ fun FavoriteScreen(navController: NavHostController, allTrips: MutableList<TripD
 }
 
 @Composable
-fun FilterChip(isSelected: Boolean, label: String) {
+fun FilterChip(isSelected: Boolean, label: String, onClick: () -> Unit = {}) {
     Surface(
+        modifier = Modifier.clickable { onClick() },
         color = if (isSelected) Color(0xFFF5F5DC) else LightGrey.copy(alpha = 0.5f),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(20.dp),
+        border = if (isSelected) BorderStroke(1.dp, DarkGreen) else null
     ) {
         Text(label, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
     }
@@ -110,9 +112,14 @@ fun NotificationScreen() {
 }
 
 @Composable
-fun SecurityScreen() {
+fun SecurityScreen(navController: NavHostController) {
     Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Keamanan & SOS", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+            }
+            Text("Keamanan & SOS", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
         Spacer(modifier = Modifier.height(16.dp))
         SecurityOption("Bagi Lokasi Langsung", "Update posisi kamu ke teman perjalanan", Icons.Default.MyLocation)
         SecurityOption("Kontak Darurat", "Panggil bantuan dalam satu klik", Icons.Default.Call)
@@ -172,7 +179,8 @@ fun DetailChatScreen(name: String, navController: NavHostController) {
                                 messageText = ""
                             }
                         }, 
-                        modifier = Modifier.background(DarkGreen, CircleShape)
+                        modifier = Modifier.background(if (messageText.isNotBlank()) DarkGreen else Color.Gray, CircleShape),
+                        enabled = messageText.isNotBlank()
                     ) {
                         Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White)
                     }
@@ -209,7 +217,12 @@ fun ProfileScreen(navController: NavHostController) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(80.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
-                        Icon(Icons.Default.Edit, null, modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp), tint = Color.White)
+                        Icon(
+                            Icons.Default.Edit, 
+                            null, 
+                            modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp).clickable { navController.navigate(Screen.EditProfile.route) }, 
+                            tint = Color.White
+                        )
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
@@ -230,10 +243,10 @@ fun ProfileScreen(navController: NavHostController) {
         
         // Stats Row
         Row(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox("12", "Trip Joined", Icons.Default.WorkOutline, Modifier.weight(1f))
-            StatBox("5", "Trip Created", Icons.Default.Flag, Modifier.weight(1f))
-            StatBox("8", "Wishlist", Icons.Default.FavoriteBorder, Modifier.weight(1f))
-            StatBox("Medium", "Budget Level", Icons.Default.AccountBalanceWallet, Modifier.weight(1f))
+            StatBox("12", "Trip Joined", Icons.Default.WorkOutline, Modifier.weight(1f)) { navController.navigate(Screen.TripJoined.route) }
+            StatBox("5", "Trip Created", Icons.Default.Flag, Modifier.weight(1f)) { navController.navigate(Screen.TripCreated.route) }
+            StatBox("8", "Wishlist", Icons.Default.FavoriteBorder, Modifier.weight(1f)) { navController.navigate(Screen.Wishlist.route) }
+            StatBox("Medium", "Budget Level", Icons.Default.AccountBalanceWallet, Modifier.weight(1f)) { navController.navigate(Screen.Budget.route) }
         }
         
         Spacer(modifier = Modifier.height(20.dp))
@@ -282,17 +295,25 @@ fun ProfileScreen(navController: NavHostController) {
         // Safety & Security
         Card(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, LightGrey)) {
              Column(modifier = Modifier.padding(16.dp)) {
-                 Row(verticalAlignment = Alignment.CenterVertically) {
+                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { navController.navigate(Screen.Security.route) }) {
                      Icon(Icons.Default.Shield, null, tint = DarkGreen)
                      Spacer(modifier = Modifier.width(8.dp))
                      Text("Safety & Security", fontWeight = FontWeight.Bold)
                  }
                  Spacer(modifier = Modifier.height(16.dp))
                  Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                     SecurityCircleItem(Icons.Default.Verified, "Verified Account", "Terverifikasi")
-                     SecurityCircleItem(Icons.Default.LocationOn, "Alamat", "Lampung")
-                     SecurityCircleItem(Icons.Default.Call, "Emergency", "2 Kontak")
-                     SecurityCircleItem(Icons.Default.Flag, "Report Center", "Laporkan User")
+                     SecurityCircleItem(Icons.Default.Verified, "Verified Account", "Terverifikasi") {
+                         navController.navigate(Screen.VerifiedAccount.route)
+                     }
+                     SecurityCircleItem(Icons.Default.LocationOn, "Alamat", "Lampung") {
+                         navController.navigate(Screen.Address.route)
+                     }
+                     SecurityCircleItem(Icons.Default.Call, "Emergency", "2 Kontak") {
+                         navController.navigate(Screen.EmergencyContact.route)
+                     }
+                     SecurityCircleItem(Icons.Default.Flag, "Report Center", "Laporkan User") {
+                         navController.navigate(Screen.ReportCenter.route)
+                     }
                  }
              }
         }
@@ -313,8 +334,8 @@ fun ProfileStatItem(icon: ImageVector, title: String, subtitle: String) {
 }
 
 @Composable
-fun StatBox(value: String, label: String, icon: ImageVector, modifier: Modifier) {
-    Card(modifier = modifier.height(100.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, LightGrey)) {
+fun StatBox(value: String, label: String, icon: ImageVector, modifier: Modifier, onClick: () -> Unit = {}) {
+    Card(modifier = modifier.height(100.dp).clickable { onClick() }, colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, LightGrey)) {
         Column(modifier = Modifier.fillMaxSize().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Icon(icon, null, tint = Color.LightGray)
             Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -336,8 +357,8 @@ fun PreferenceItem(icon: ImageVector, label: String, value: String, modifier: Mo
 }
 
 @Composable
-fun SecurityCircleItem(icon: ImageVector, label: String, status: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+fun SecurityCircleItem(icon: ImageVector, label: String, status: String, onClick: () -> Unit = {}) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onClick() }) {
         Box(modifier = Modifier.size(40.dp).background(LightGrey.copy(alpha = 0.5f), CircleShape), contentAlignment = Alignment.Center) {
             Icon(icon, null, tint = DarkGreen, modifier = Modifier.size(20.dp))
         }
@@ -535,9 +556,13 @@ fun TransactionItem(title: String, date: String, amount: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditPreferencesScreen(navController: NavHostController) {
+    var favDestinations by remember { mutableStateOf("Bali, Bromo, Rinjani") }
     var budget by remember { mutableStateOf("Low - Mid") }
     var style by remember { mutableStateOf("Adventurer") }
+    var availableTime by remember { mutableStateOf("Weekend Only") }
     
+    val isFormValid = favDestinations.isNotBlank() && availableTime.isNotBlank()
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -547,29 +572,88 @@ fun EditPreferencesScreen(navController: NavHostController) {
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
-            Text("Destinasi Favorit", fontWeight = FontWeight.Bold)
+            Text("Destinasi Favorit *", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = "Bali, Bromo, Rinjani", onValueChange = {}, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = favDestinations, 
+                onValueChange = { favDestinations = it }, 
+                modifier = Modifier.fillMaxWidth(),
+                isError = favDestinations.isBlank(),
+                supportingText = { if (favDestinations.isBlank()) Text("Wajib diisi", color = Color.Red) }
+            )
             
             Spacer(modifier = Modifier.height(24.dp))
             Text("Budget Preference", fontWeight = FontWeight.Bold)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Backpacker", "Low - Mid", "Luxury").forEach { item ->
-                    FilterChip(budget == item, item)
+                    FilterChip(budget == item, item, onClick = { budget = item })
                 }
             }
             
             Spacer(modifier = Modifier.height(24.dp))
             Text("Traveling Style", fontWeight = FontWeight.Bold)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Adventurer", "Relaxing", "Cultural").forEach { item ->
-                    FilterChip(style == item, item)
+                    FilterChip(style == item, item, onClick = { style = item })
                 }
             }
             
             Spacer(modifier = Modifier.height(24.dp))
-            Text("Waktu Tersedia", fontWeight = FontWeight.Bold)
-            OutlinedTextField(value = "Weekend Only", onValueChange = {}, modifier = Modifier.fillMaxWidth())
+            Text("Waktu Tersedia *", fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = availableTime, 
+                onValueChange = { availableTime = it }, 
+                modifier = Modifier.fillMaxWidth(),
+                isError = availableTime.isBlank(),
+                supportingText = { if (availableTime.isBlank()) Text("Wajib diisi", color = Color.Red) }
+            )
+            
+            Spacer(modifier = Modifier.height(40.dp))
+            Button(
+                onClick = { if (isFormValid) navController.popBackStack() },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = if (isFormValid) DarkGreen else Color.Gray),
+                shape = RoundedCornerShape(28.dp),
+                enabled = isFormValid
+            ) {
+                Text("Simpan Perubahan", fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditProfileScreen(navController: NavHostController) {
+    var name by remember { mutableStateOf("Elisa Tisya Nugraha") }
+    var username by remember { mutableStateOf("satisyaa") }
+    var bio by remember { mutableStateOf("Life is short, travel more!") }
+    
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Edit Profil", fontWeight = FontWeight.Bold) },
+                navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) } }
+            )
+        }
+    ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.size(100.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
+                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(32.dp).background(DarkGreen, CircleShape).padding(6.dp), tint = Color.White)
+                }
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+            Text("Nama Lengkap", fontWeight = FontWeight.Bold)
+            OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Username", fontWeight = FontWeight.Bold)
+            OutlinedTextField(value = username, onValueChange = { username = it }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), prefix = { Text("@") })
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Bio", fontWeight = FontWeight.Bold)
+            OutlinedTextField(value = bio, onValueChange = { bio = it }, modifier = Modifier.fillMaxWidth().height(100.dp), shape = RoundedCornerShape(12.dp))
             
             Spacer(modifier = Modifier.weight(1f))
             Button(
@@ -578,8 +662,208 @@ fun EditPreferencesScreen(navController: NavHostController) {
                 colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
                 shape = RoundedCornerShape(28.dp)
             ) {
-                Text("Simpan Perubahan", fontWeight = FontWeight.Bold)
+                Text("Simpan", fontWeight = FontWeight.Bold)
             }
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun TripJoinedScreen(navController: NavHostController, allTrips: List<TripData>) {
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+            Text("Trip Diikuti", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            items(allTrips.take(2)) { trip ->
+                TripItemCard(
+                    trip = trip,
+                    onClick = { navController.navigate("e_ticket/${trip.title}") }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TripCreatedScreen(navController: NavHostController, allTrips: List<TripData>) {
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+            Text("Trip Dibuat", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            items(allTrips.drop(2).take(1)) { trip ->
+                TripItemCard(
+                    trip = trip,
+                    onClick = { navController.navigate("trip_detail/${trip.title}") }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun WishlistScreen(navController: NavHostController, allTrips: List<TripData>) {
+    val wishlist = allTrips.filter { it.isFavorite }
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+            Text("Wishlist", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        if (wishlist.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Belum ada wishlist", color = Color.Gray)
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                items(wishlist) { trip ->
+                    TripItemCard(
+                        trip = trip,
+                        isFavorite = true,
+                        onClick = { navController.navigate("trip_detail/${trip.title}") }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun VerifiedAccountScreen(navController: NavHostController) {
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+            Text("Verified Account", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(40.dp))
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.Verified, null, modifier = Modifier.size(100.dp), tint = DarkGreen)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Akun Anda Terverifikasi!", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+        Text("Identitas Anda telah kami konfirmasi untuk keamanan komunitas.", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = Color.Gray)
+        
+        Spacer(modifier = Modifier.height(40.dp))
+        Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFD5E8D4))) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Keuntungan Verifikasi:", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Row {
+                    Icon(Icons.Default.Check, null, tint = DarkGreen, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Badge centang biru di profil.", fontSize = 14.sp)
+                }
+                Row {
+                    Icon(Icons.Default.Check, null, tint = DarkGreen, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Prioritas dalam pencarian matching.", fontSize = 14.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmergencyContactScreen(navController: NavHostController) {
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+            Text("Kontak Darurat", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Siapa yang harus kami hubungi dalam keadaan darurat?", color = Color.Gray)
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        EmergencyItem("Ayah", "0812-3456-7890")
+        EmergencyItem("Ibu", "0812-9876-5432")
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = { /* Add new */ },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
+            shape = RoundedCornerShape(28.dp)
+        ) {
+            Text("Tambah Kontak Baru", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun EmergencyItem(rel: String, phone: String) {
+    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), border = BorderStroke(1.dp, LightGrey)) {
+        Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column {
+                Text(rel, fontWeight = FontWeight.Bold)
+                Text(phone, color = Color.Gray)
+            }
+            Icon(Icons.Default.Call, null, tint = DarkGreen)
+        }
+    }
+}
+
+@Composable
+fun ReportCenterScreen(navController: NavHostController) {
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+            Text("Report Center", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Laporkan masalah atau pengguna lain demi keamanan bersama.", color = Color.Gray)
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        OutlinedTextField(
+            value = "", 
+            onValueChange = {}, 
+            placeholder = { Text("Ceritakan apa yang terjadi...") },
+            modifier = Modifier.fillMaxWidth().height(150.dp),
+            shape = RoundedCornerShape(12.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
+            shape = RoundedCornerShape(28.dp)
+        ) {
+            Text("Kirim Laporan", fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun AddressScreen(navController: NavHostController) {
+    var address by remember { mutableStateOf("Jl. Merdeka No. 123, Bandar Lampung") }
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
+            Text("Alamat Saya", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Alamat Utama", fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = address,
+            onValueChange = { address = it },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = DarkGreen) }
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
+            shape = RoundedCornerShape(28.dp)
+        ) {
+            Text("Simpan Alamat", fontWeight = FontWeight.Bold)
         }
     }
 }

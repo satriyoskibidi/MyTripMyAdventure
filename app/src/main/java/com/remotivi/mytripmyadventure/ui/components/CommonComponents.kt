@@ -44,7 +44,8 @@ data class ReviewData(
     val tripTitle: String,
     val rating: Int,
     val comment: String,
-    val date: String
+    val date: String,
+    val tags: List<String> = emptyList()
 )
 
 data class Category(val name: String, val icon: ImageVector)

@@ -31,6 +31,7 @@ import androidx.navigation.NavHostController
 import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @Composable
 fun CreateTripIntroScreen(navController: NavHostController) {
@@ -123,7 +124,7 @@ fun StepHeader(currentStep: Int, navController: NavHostController) {
             }
         )
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            StepCircle(1, "Detail Trip", currentStep >= 1)
+            StepCircle(1, "Detail", currentStep >= 1)
             Box(modifier = Modifier.weight(1f).height(1.dp).background(LightGrey))
             StepCircle(2, "Itinerary", currentStep >= 2)
             Box(modifier = Modifier.weight(1f).height(1.dp).background(LightGrey))
@@ -153,6 +154,8 @@ fun CreateTripStep1Screen(navController: NavHostController) {
     var destination by remember { mutableStateOf("") }
     var duration by remember { mutableStateOf("") }
 
+    val isFormValid = tripName.isNotBlank() && location.isNotBlank() && duration.isNotBlank()
+
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         StepHeader(1, navController)
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
@@ -170,23 +173,55 @@ fun CreateTripStep1Screen(navController: NavHostController) {
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
-            Text("Nama Trip", fontWeight = FontWeight.Bold)
-            OutlinedTextField(value = tripName, onValueChange = { tripName = it }, placeholder = { Text("Masukkan Nama Trip") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            
+            Text("Nama Trip *", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = tripName, 
+                onValueChange = { tripName = it }, 
+                placeholder = { Text("Masukkan Nama Trip") }, 
+                modifier = Modifier.fillMaxWidth(), 
+                shape = RoundedCornerShape(12.dp),
+                isError = tripName.isEmpty(),
+                supportingText = { if (tripName.isEmpty()) Text("Nama trip tidak boleh kosong", color = Color.Red, fontSize = 10.sp) }
+            )
+            
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Destinasi", fontWeight = FontWeight.Bold)
-            OutlinedTextField(value = location, onValueChange = { location = it }, leadingIcon = { Icon(Icons.Default.LocationOn, null) }, placeholder = { Text("Lokasi utama") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            Text("Destinasi Utama *", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = location, 
+                onValueChange = { location = it }, 
+                leadingIcon = { Icon(Icons.Default.LocationOn, null) }, 
+                placeholder = { Text("Lokasi utama") }, 
+                modifier = Modifier.fillMaxWidth(), 
+                shape = RoundedCornerShape(12.dp),
+                isError = location.isEmpty(),
+                supportingText = { if (location.isEmpty()) Text("Lokasi tidak boleh kosong", color = Color.Red, fontSize = 10.sp) }
+            )
+            
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = destination, onValueChange = { destination = it }, leadingIcon = { Icon(Icons.Default.LocationOn, null) }, placeholder = { Text("Destinasi Tambahan (Opsional)") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            Text("Destinasi Tambahan (Opsional)", fontWeight = FontWeight.Bold)
+            OutlinedTextField(value = destination, onValueChange = { destination = it }, leadingIcon = { Icon(Icons.Default.LocationOn, null) }, placeholder = { Text("Contoh: Kawah Ijen, Baluran") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Durasi Trip", fontWeight = FontWeight.Bold)
-            OutlinedTextField(value = duration, onValueChange = { duration = it }, leadingIcon = { Icon(Icons.Default.CalendarToday, null) }, placeholder = { Text("Tanggal berangkat -> Tanggal pulang") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            Text("Durasi Trip *", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = duration, 
+                onValueChange = { duration = it }, 
+                leadingIcon = { Icon(Icons.Default.CalendarToday, null) }, 
+                placeholder = { Text("Contoh: 3 Hari 2 Malam") }, 
+                modifier = Modifier.fillMaxWidth(), 
+                shape = RoundedCornerShape(12.dp),
+                isError = duration.isEmpty(),
+                supportingText = { if (duration.isEmpty()) Text("Durasi tidak boleh kosong", color = Color.Red, fontSize = 10.sp) }
+            )
             
             Spacer(modifier = Modifier.height(40.dp))
             Button(
-                onClick = { navController.navigate(Screen.CreateTripStep2.route) },
+                onClick = { if (isFormValid) navController.navigate(Screen.CreateTripStep2.route) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                shape = RoundedCornerShape(28.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = if (isFormValid) DarkGreen else Color.Gray),
+                shape = RoundedCornerShape(28.dp),
+                enabled = isFormValid
             ) {
                 Text("Lanjutkan", fontWeight = FontWeight.Bold)
             }
@@ -202,15 +237,20 @@ fun CreateTripStep2Screen(navController: NavHostController) {
     
     val itineraryList = remember { mutableStateListOf(
         "Day 1 - Berangkat" to "Meeting point di Bromo",
-        "Day 2 - Bromo Sunrise Tour" to "blablabla",
-        "Day 3 - Explore Malang" to "blablabla"
+        "Day 2 - Bromo Sunrise Tour" to "Explore kawah bromo",
+        "Day 3 - Explore Malang" to "Belanja oleh-oleh"
     ) }
+
+    val isFormValid = meetingPoint.isNotBlank() && meetingTime.isNotBlank() && itineraryList.isNotEmpty()
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         StepHeader(2, navController)
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            Text("Itinerary Perjalanan", fontWeight = FontWeight.Bold)
+            Text("Itinerary Perjalanan *", fontWeight = FontWeight.Bold)
             Text("Tambahkan rencana perjalanan untuk trip ini", fontSize = 12.sp, color = Color.Gray)
+            if (itineraryList.isEmpty()) {
+                Text("Minimal harus ada 1 rencana perjalanan", color = Color.Red, fontSize = 10.sp)
+            }
             Spacer(modifier = Modifier.height(16.dp))
             
             itineraryList.forEachIndexed { index, (title, desc) ->
@@ -229,18 +269,36 @@ fun CreateTripStep2Screen(navController: NavHostController) {
             }
             
             Spacer(modifier = Modifier.height(24.dp))
-            Text("Meeting Point", fontWeight = FontWeight.Bold)
-            OutlinedTextField(value = meetingPoint, onValueChange = { meetingPoint = it }, placeholder = { Text("Masukkan Tempat Meeting Point") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            Text("Meeting Point *", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = meetingPoint, 
+                onValueChange = { meetingPoint = it }, 
+                placeholder = { Text("Masukkan Tempat Meeting Point") }, 
+                modifier = Modifier.fillMaxWidth(), 
+                shape = RoundedCornerShape(12.dp),
+                isError = meetingPoint.isEmpty(),
+                supportingText = { if (meetingPoint.isEmpty()) Text("Meeting point wajib diisi", color = Color.Red, fontSize = 10.sp) }
+            )
+            
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Waktu Meeting Point", fontWeight = FontWeight.Bold)
-            OutlinedTextField(value = meetingTime, onValueChange = { meetingTime = it }, placeholder = { Text("Masukkan waktu meeting point") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            Text("Waktu Meeting Point *", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = meetingTime, 
+                onValueChange = { meetingTime = it }, 
+                placeholder = { Text("Contoh: 08:00 WIB") }, 
+                modifier = Modifier.fillMaxWidth(), 
+                shape = RoundedCornerShape(12.dp),
+                isError = meetingTime.isEmpty(),
+                supportingText = { if (meetingTime.isEmpty()) Text("Waktu wajib diisi", color = Color.Red, fontSize = 10.sp) }
+            )
             
             Spacer(modifier = Modifier.height(40.dp))
             Button(
-                onClick = { navController.navigate(Screen.CreateTripStep3.route) },
+                onClick = { if (isFormValid) navController.navigate(Screen.CreateTripStep3.route) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                shape = RoundedCornerShape(28.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = if (isFormValid) DarkGreen else Color.Gray),
+                shape = RoundedCornerShape(28.dp),
+                enabled = isFormValid
             ) {
                 Text("Lanjutkan", fontWeight = FontWeight.Bold)
             }
@@ -273,31 +331,53 @@ fun ItineraryStepItem(title: String, desc: String, onRemove: () -> Unit) {
 
 @Composable
 fun CreateTripStep3Screen(navController: NavHostController) {
-    val selectedTransport = remember { mutableStateListOf("Motor") }
-    val selectedAcomodation = remember { mutableStateOf("Hotel") }
-    val selectedMakan = remember { mutableStateOf("Termasuk") }
-    val selectedTiket = remember { mutableStateOf("Termasuk") }
-    val selectedLainnya = remember { mutableStateListOf("Air Mineral", "Asuransi", "Dokumentasi", "Snack") }
+    val selectedTransport = remember {
+        mutableStateListOf("Motor")
+    }
+
+    val selectedAcomodation = rememberSaveable {
+        mutableStateOf("Hotel")
+    }
+
+    val selectedMakan = rememberSaveable {
+        mutableStateOf("Termasuk")
+    }
+
+    val selectedTiket = rememberSaveable {
+        mutableStateOf("Termasuk")
+    }
+
+    val selectedLainnya = remember {
+        mutableStateListOf(
+            "Air Mineral",
+            "Asuransi",
+            "Dokumentasi",
+            "Snack"
+        )
+    }
+
+    val isFormValid = selectedTransport.isNotEmpty() && selectedAcomodation.value.isNotEmpty()
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         StepHeader(3, navController)
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            Text("Fasilitas yang Didapatkan", fontWeight = FontWeight.Bold)
+            Text("Fasilitas yang Didapatkan *", fontWeight = FontWeight.Bold)
             Text("Pilih fasilitas yang termasuk dalam trip ini", fontSize = 12.sp, color = Color.Gray)
             Spacer(modifier = Modifier.height(24.dp))
             
-            FacilitySectionMulti("Transportasi", listOf("Motor", "Mobil", "Bus / Travel", "Pesawat"), selectedTransport)
-            FacilitySectionSingle("Akomodasi", listOf("Hotel", "Homestay", "Camping", "Tidak Termasuk"), selectedAcomodation)
+            FacilitySectionMulti("Transportasi *", listOf("Motor", "Mobil", "Bus / Travel", "Pesawat"), selectedTransport)
+            FacilitySectionSingle("Akomodasi *", listOf("Hotel", "Homestay", "Camping", "Tidak Termasuk"), selectedAcomodation)
             FacilitySectionSingle("Makan", listOf("Termasuk", "Tidak Termasuk"), selectedMakan)
             FacilitySectionSingle("Tiket Masuk & Wisata", listOf("Termasuk", "Tidak Termasuk"), selectedTiket)
             FacilitySectionMulti("Fasilitas Lainnya", listOf("Tour Leader", "Air Mineral", "Asuransi", "P3K", "Dokumentasi", "Snack"), selectedLainnya)
             
             Spacer(modifier = Modifier.height(40.dp))
             Button(
-                onClick = { navController.navigate(Screen.CreateTripStep4.route) },
+                onClick = { if (isFormValid) navController.navigate(Screen.CreateTripStep4.route) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                shape = RoundedCornerShape(28.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = if (isFormValid) DarkGreen else Color.Gray),
+                shape = RoundedCornerShape(28.dp),
+                enabled = isFormValid
             ) {
                 Text("Lanjutkan", fontWeight = FontWeight.Bold)
             }
@@ -312,7 +392,11 @@ fun FacilitySectionMulti(title: String, items: List<String>, selectedItems: Muta
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         Spacer(modifier = Modifier.height(8.dp))
-        androidx.compose.foundation.layout.FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 4) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(), 
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items.forEach { item ->
                 val isSelected = selectedItems.contains(item)
                 Surface(

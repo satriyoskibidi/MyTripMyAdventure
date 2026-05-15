@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.EventNote
+import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -67,9 +68,27 @@ sealed class Screen(val route: String, val icon: ImageVector, val label: String)
     object Planner : Screen("planner", Icons.AutoMirrored.Filled.EventNote, "Planner")
     object Budget : Screen("budget", Icons.Default.AccountBalanceWallet, "Budget")
     object EditPreferences : Screen("edit_preferences", Icons.Default.Settings, "Edit Preferences")
+    object EditProfile : Screen("edit_profile", Icons.Default.Edit, "Edit Profile")
+    object TripJoined : Screen("trip_joined", Icons.Default.WorkOutline, "Trip Joined")
+    object TripCreated : Screen("trip_created", Icons.Default.Flag, "Trip Created")
+    object Wishlist : Screen("wishlist", Icons.Default.FavoriteBorder, "Wishlist")
     object ETicket : Screen("e_ticket/{tripId}", Icons.Default.ConfirmationNumber, "E-Ticket")
     object ReviewSuccess : Screen("review_success", Icons.Default.CheckCircle, "Review Success")
     object MyReviews : Screen("my_reviews", Icons.Default.Star, "My Reviews")
+    
+    // Safety & Security Sub-screens
+    object VerifiedAccount : Screen("verified_account", Icons.Default.Verified, "Verified Account")
+    object EmergencyContact : Screen("emergency_contact", Icons.Default.Call, "Emergency Contact")
+    object ReportCenter : Screen("report_center", Icons.Default.Flag, "Report Center")
+    object Address : Screen("address", Icons.Default.LocationOn, "Address")
+    object LiveLocation : Screen("live_location", Icons.Default.MyLocation, "Live Location")
+
+    // Additional Features
+    object Settings : Screen("settings", Icons.Default.Settings, "Settings")
+    object HelpCenter : Screen("help_center", Icons.AutoMirrored.Filled.Help, "Help Center")
+    object Voucher : Screen("voucher", Icons.Default.ConfirmationNumber, "Voucher")
+    object PaymentSuccess : Screen("payment_success/{tripId}", Icons.Default.CheckCircle, "Payment Success")
+    object ParticipantList : Screen("participants/{tripId}", Icons.Default.Groups, "Participants")
 }
 
 @Composable
@@ -144,14 +163,38 @@ fun MainApp() {
                 val name = backStackEntry.arguments?.getString("name") ?: "Chat"
                 DetailChatScreen(name, navController)
             }
-            composable(Screen.Security.route) { SecurityScreen() }
+            composable(Screen.Security.route) { SecurityScreen(navController) }
             composable(Screen.Matching.route) { MatchingScreen(navController) }
             composable(Screen.Planner.route) { PlannerScreen(navController) }
             composable(Screen.Budget.route) { BudgetScreen(navController) }
             composable(Screen.EditPreferences.route) { EditPreferencesScreen(navController) }
+            composable(Screen.EditProfile.route) { EditProfileScreen(navController) }
+            composable(Screen.TripJoined.route) { TripJoinedScreen(navController, allTrips) }
+            composable(Screen.TripCreated.route) { TripCreatedScreen(navController, allTrips) }
+            composable(Screen.Wishlist.route) { WishlistScreen(navController, allTrips) }
             composable(Screen.ETicket.route) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
                 ETicketScreen(tripId, navController, allTrips)
+            }
+            
+            // Safety & Security Sub-screens
+            composable(Screen.VerifiedAccount.route) { VerifiedAccountScreen(navController) }
+            composable(Screen.EmergencyContact.route) { EmergencyContactScreen(navController) }
+            composable(Screen.ReportCenter.route) { ReportCenterScreen(navController) }
+            composable(Screen.Address.route) { AddressScreen(navController) }
+            composable(Screen.LiveLocation.route) { LiveLocationScreen(navController) }
+
+            // Additional Screens
+            composable(Screen.Settings.route) { SettingsScreen(navController) }
+            composable(Screen.HelpCenter.route) { HelpCenterScreen(navController) }
+            composable(Screen.Voucher.route) { VoucherScreen(navController) }
+            composable(Screen.PaymentSuccess.route) { backStackEntry ->
+                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                PaymentSuccessScreen(navController, tripId)
+            }
+            composable(Screen.ParticipantList.route) { backStackEntry ->
+                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                ParticipantListScreen(navController, tripId)
             }
         }
     }
