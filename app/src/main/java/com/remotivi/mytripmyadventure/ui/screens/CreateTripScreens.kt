@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -335,15 +336,15 @@ fun CreateTripStep3Screen(navController: NavHostController) {
         mutableStateListOf("Motor")
     }
 
-    val selectedAcomodation = rememberSaveable {
+    var selectedAcomodation by rememberSaveable {
         mutableStateOf("Hotel")
     }
 
-    val selectedMakan = rememberSaveable {
+    var selectedMakan by rememberSaveable {
         mutableStateOf("Termasuk")
     }
 
-    val selectedTiket = rememberSaveable {
+    var selectedTiket by rememberSaveable {
         mutableStateOf("Termasuk")
     }
 
@@ -356,7 +357,7 @@ fun CreateTripStep3Screen(navController: NavHostController) {
         )
     }
 
-    val isFormValid = selectedTransport.isNotEmpty() && selectedAcomodation.value.isNotEmpty()
+    val isFormValid = selectedTransport.isNotEmpty() && selectedAcomodation.isNotEmpty()
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         StepHeader(3, navController)
@@ -366,9 +367,9 @@ fun CreateTripStep3Screen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(24.dp))
             
             FacilitySectionMulti("Transportasi *", listOf("Motor", "Mobil", "Bus / Travel", "Pesawat"), selectedTransport)
-            FacilitySectionSingle("Akomodasi *", listOf("Hotel", "Homestay", "Camping", "Tidak Termasuk"), selectedAcomodation)
-            FacilitySectionSingle("Makan", listOf("Termasuk", "Tidak Termasuk"), selectedMakan)
-            FacilitySectionSingle("Tiket Masuk & Wisata", listOf("Termasuk", "Tidak Termasuk"), selectedTiket)
+            FacilitySectionSingle("Akomodasi *", listOf("Hotel", "Homestay", "Camping", "Tidak Termasuk"), selectedAcomodation) { selectedAcomodation = it }
+            FacilitySectionSingle("Makan", listOf("Termasuk", "Tidak Termasuk"), selectedMakan) { selectedMakan = it }
+            FacilitySectionSingle("Tiket Masuk & Wisata", listOf("Termasuk", "Tidak Termasuk"), selectedTiket) { selectedTiket = it }
             FacilitySectionMulti("Fasilitas Lainnya", listOf("Tour Leader", "Air Mineral", "Asuransi", "P3K", "Dokumentasi", "Snack"), selectedLainnya)
             
             Spacer(modifier = Modifier.height(40.dp))
@@ -386,21 +387,19 @@ fun CreateTripStep3Screen(navController: NavHostController) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FacilitySectionMulti(title: String, items: List<String>, selectedItems: MutableList<String>) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         Spacer(modifier = Modifier.height(8.dp))
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(), 
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items.forEach { item ->
                 val isSelected = selectedItems.contains(item)
                 Surface(
-                    modifier = Modifier.padding(vertical = 4.dp).clickable { 
+                    onClick = { 
                         if (isSelected) selectedItems.remove(item) else selectedItems.add(item)
                     },
                     shape = RoundedCornerShape(8.dp),
@@ -417,20 +416,23 @@ fun FacilitySectionMulti(title: String, items: List<String>, selectedItems: Muta
 }
 
 @Composable
-fun FacilitySectionSingle(title: String, items: List<String>, selectedItem: MutableState<String>) {
+fun FacilitySectionSingle(title: String, items: List<String>, selectedItem: String, onItemSelected: (String) -> Unit) {
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         Spacer(modifier = Modifier.height(8.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items.forEach { item ->
-                val isSelected = selectedItem.value == item
+                val isSelected = selectedItem == item
                 Surface(
-                    modifier = Modifier.weight(1f).clickable { selectedItem.value = item },
+                    onClick = { onItemSelected(item) },
                     shape = RoundedCornerShape(8.dp),
                     border = BorderStroke(1.dp, if (isSelected) DarkGreen else Color.Gray),
                     color = if (isSelected) Color(0xFFD5E8D4) else Color.White
                 ) {
-                    Box(modifier = Modifier.padding(8.dp), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
                         Text(item, fontSize = 10.sp, textAlign = TextAlign.Center)
                     }
                 }
