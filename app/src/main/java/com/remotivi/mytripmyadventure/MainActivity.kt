@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -37,7 +39,24 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyTripMyAdventureTheme {
-                MainApp()
+                val auth = Firebase.auth
+                var isLoggedIn by remember { mutableStateOf(auth.currentUser != null) }
+
+                DisposableEffect(auth) {
+                    val listener = com.google.firebase.auth.FirebaseAuth.AuthStateListener { firebaseAuth ->
+                        isLoggedIn = firebaseAuth.currentUser != null
+                    }
+                    auth.addAuthStateListener(listener)
+                    onDispose {
+                        auth.removeAuthStateListener(listener)
+                    }
+                }
+
+                if (isLoggedIn) {
+                    MainApp()
+                } else {
+                    AuthScreen(onLoginSuccess = { isLoggedIn = true })
+                }
             }
         }
     }
@@ -96,6 +115,7 @@ fun MainApp() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val tripFormState = remember { TripFormState() }
 
     // Shared state for trips with drawable resources
     val allTrips = remember { mutableStateListOf(
@@ -134,10 +154,10 @@ fun MainApp() {
             }
             composable(Screen.Profile.route) { ProfileScreen(navController) }
             
-            composable(Screen.CreateTripStep1.route) { CreateTripStep1Screen(navController) }
-            composable(Screen.CreateTripStep2.route) { CreateTripStep2Screen(navController) }
-            composable(Screen.CreateTripStep3.route) { CreateTripStep3Screen(navController) }
-            composable(Screen.CreateTripStep4.route) { CreateTripStep4Screen(navController) }
+            composable(Screen.CreateTripStep1.route) { CreateTripStep1Screen(navController, tripFormState) }
+            composable(Screen.CreateTripStep2.route) { CreateTripStep2Screen(navController, tripFormState) }
+            composable(Screen.CreateTripStep3.route) { CreateTripStep3Screen(navController, tripFormState) }
+            composable(Screen.CreateTripStep4.route) { CreateTripStep4Screen(navController, tripFormState) }
             
             composable(Screen.TripDetail.route) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
