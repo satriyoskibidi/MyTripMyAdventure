@@ -1,5 +1,7 @@
 package com.remotivi.mytripmyadventure.ui.screens
 
+import com.google.firebase.database.FirebaseDatabase
+import com.remotivi.mytripmyadventure.ui.components.TripData
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -33,6 +35,17 @@ import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.remotivi.mytripmyadventure.viewmodel.CreateTripViewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
+import java.io.ByteArrayOutputStream
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun CreateTripIntroScreen(navController: NavHostController) {
@@ -149,13 +162,18 @@ fun StepCircle(step: Int, label: String, isActive: Boolean) {
 }
 
 @Composable
-fun CreateTripStep1Screen(navController: NavHostController) {
-    var tripName by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var destination by remember { mutableStateOf("") }
-    var duration by remember { mutableStateOf("") }
+fun CreateTripStep1Screen(navController: NavHostController, viewModel: CreateTripViewModel) {
+    var tripName = viewModel.tripName.value
+    var location = viewModel.location.value
+    var destination = viewModel.destination.value
+    var duration = viewModel.duration.value
+    val imageUri = viewModel.imageUri.value
 
-    val isFormValid = tripName.isNotBlank() && location.isNotBlank() && duration.isNotBlank()
+    val isFormValid = tripName.isNotBlank() && location.isNotBlank() && duration.isNotBlank() && imageUri != null
+
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        viewModel.imageUri.value = uri
+    }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         StepHeader(1, navController)
@@ -164,13 +182,24 @@ fun CreateTripStep1Screen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier.fillMaxWidth().height(180.dp).background(LightGrey.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
-                    .border(1.dp, Color.Gray, RoundedCornerShape(16.dp)),
+                    .border(1.dp, Color.Gray, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { launcher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.CloudUpload, null, modifier = Modifier.size(40.dp))
-                    Text("Upload Foto", fontWeight = FontWeight.Bold)
-                    Text("JPG/PNG, maks. 5MB", fontSize = 10.sp, color = Color.Gray)
+                if (imageUri != null) {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Outlined.CloudUpload, null, modifier = Modifier.size(40.dp))
+                        Text("Upload Foto", fontWeight = FontWeight.Bold)
+                        Text("JPG/PNG, maks. 5MB", fontSize = 10.sp, color = Color.Gray)
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
@@ -178,7 +207,7 @@ fun CreateTripStep1Screen(navController: NavHostController) {
             Text("Nama Trip *", fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = tripName, 
-                onValueChange = { tripName = it }, 
+                onValueChange = { viewModel.tripName.value = it }, 
                 placeholder = { Text("Masukkan Nama Trip") }, 
                 modifier = Modifier.fillMaxWidth(), 
                 shape = RoundedCornerShape(12.dp),
@@ -190,7 +219,7 @@ fun CreateTripStep1Screen(navController: NavHostController) {
             Text("Destinasi Utama *", fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = location, 
-                onValueChange = { location = it }, 
+                onValueChange = { viewModel.location.value = it }, 
                 leadingIcon = { Icon(Icons.Default.LocationOn, null) }, 
                 placeholder = { Text("Lokasi utama") }, 
                 modifier = Modifier.fillMaxWidth(), 
@@ -201,13 +230,13 @@ fun CreateTripStep1Screen(navController: NavHostController) {
             
             Spacer(modifier = Modifier.height(8.dp))
             Text("Destinasi Tambahan (Opsional)", fontWeight = FontWeight.Bold)
-            OutlinedTextField(value = destination, onValueChange = { destination = it }, leadingIcon = { Icon(Icons.Default.LocationOn, null) }, placeholder = { Text("Contoh: Kawah Ijen, Baluran") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            OutlinedTextField(value = destination, onValueChange = { viewModel.destination.value = it }, leadingIcon = { Icon(Icons.Default.LocationOn, null) }, placeholder = { Text("Contoh: Kawah Ijen, Baluran") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
             
             Spacer(modifier = Modifier.height(16.dp))
             Text("Durasi Trip *", fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = duration, 
-                onValueChange = { duration = it }, 
+                onValueChange = { viewModel.duration.value = it }, 
                 leadingIcon = { Icon(Icons.Default.CalendarToday, null) }, 
                 placeholder = { Text("Contoh: 3 Hari 2 Malam") }, 
                 modifier = Modifier.fillMaxWidth(), 
@@ -232,15 +261,11 @@ fun CreateTripStep1Screen(navController: NavHostController) {
 }
 
 @Composable
-fun CreateTripStep2Screen(navController: NavHostController) {
-    var meetingPoint by remember { mutableStateOf("") }
-    var meetingTime by remember { mutableStateOf("") }
+fun CreateTripStep2Screen(navController: NavHostController, viewModel: CreateTripViewModel) {
+    var meetingPoint = viewModel.meetingPoint.value
+    var meetingTime = viewModel.meetingTime.value
     
-    val itineraryList = remember { mutableStateListOf(
-        "Day 1 - Berangkat" to "Meeting point di Bromo",
-        "Day 2 - Bromo Sunrise Tour" to "Explore kawah bromo",
-        "Day 3 - Explore Malang" to "Belanja oleh-oleh"
-    ) }
+    val itineraryList = viewModel.itineraryList
 
     val isFormValid = meetingPoint.isNotBlank() && meetingTime.isNotBlank() && itineraryList.isNotEmpty()
 
@@ -273,7 +298,7 @@ fun CreateTripStep2Screen(navController: NavHostController) {
             Text("Meeting Point *", fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = meetingPoint, 
-                onValueChange = { meetingPoint = it }, 
+                onValueChange = { viewModel.meetingPoint.value = it }, 
                 placeholder = { Text("Masukkan Tempat Meeting Point") }, 
                 modifier = Modifier.fillMaxWidth(), 
                 shape = RoundedCornerShape(12.dp),
@@ -285,7 +310,7 @@ fun CreateTripStep2Screen(navController: NavHostController) {
             Text("Waktu Meeting Point *", fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = meetingTime, 
-                onValueChange = { meetingTime = it }, 
+                onValueChange = { viewModel.meetingTime.value = it }, 
                 placeholder = { Text("Contoh: 08:00 WIB") }, 
                 modifier = Modifier.fillMaxWidth(), 
                 shape = RoundedCornerShape(12.dp),
@@ -331,31 +356,12 @@ fun ItineraryStepItem(title: String, desc: String, onRemove: () -> Unit) {
 }
 
 @Composable
-fun CreateTripStep3Screen(navController: NavHostController) {
-    val selectedTransport = remember {
-        mutableStateListOf("Motor")
-    }
-
-    var selectedAcomodation by rememberSaveable {
-        mutableStateOf("Hotel")
-    }
-
-    var selectedMakan by rememberSaveable {
-        mutableStateOf("Termasuk")
-    }
-
-    var selectedTiket by rememberSaveable {
-        mutableStateOf("Termasuk")
-    }
-
-    val selectedLainnya = remember {
-        mutableStateListOf(
-            "Air Mineral",
-            "Asuransi",
-            "Dokumentasi",
-            "Snack"
-        )
-    }
+fun CreateTripStep3Screen(navController: NavHostController, viewModel: CreateTripViewModel) {
+    val selectedTransport = viewModel.selectedTransport
+    var selectedAcomodation = viewModel.selectedAcomodation.value
+    var selectedMakan = viewModel.selectedMakan.value
+    var selectedTiket = viewModel.selectedTiket.value
+    val selectedLainnya = viewModel.selectedLainnya
 
     val isFormValid = selectedTransport.isNotEmpty() && selectedAcomodation.isNotEmpty()
 
@@ -367,9 +373,9 @@ fun CreateTripStep3Screen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(24.dp))
             
             FacilitySectionMulti("Transportasi *", listOf("Motor", "Mobil", "Bus / Travel", "Pesawat"), selectedTransport)
-            FacilitySectionSingle("Akomodasi *", listOf("Hotel", "Homestay", "Camping", "Tidak Termasuk"), selectedAcomodation) { selectedAcomodation = it }
-            FacilitySectionSingle("Makan", listOf("Termasuk", "Tidak Termasuk"), selectedMakan) { selectedMakan = it }
-            FacilitySectionSingle("Tiket Masuk & Wisata", listOf("Termasuk", "Tidak Termasuk"), selectedTiket) { selectedTiket = it }
+            FacilitySectionSingle("Akomodasi *", listOf("Hotel", "Homestay", "Camping", "Tidak Termasuk"), selectedAcomodation) { viewModel.selectedAcomodation.value = it }
+            FacilitySectionSingle("Makan", listOf("Termasuk", "Tidak Termasuk"), selectedMakan) { viewModel.selectedMakan.value = it }
+            FacilitySectionSingle("Tiket Masuk & Wisata", listOf("Termasuk", "Tidak Termasuk"), selectedTiket) { viewModel.selectedTiket.value = it }
             FacilitySectionMulti("Fasilitas Lainnya", listOf("Tour Leader", "Air Mineral", "Asuransi", "P3K", "Dokumentasi", "Snack"), selectedLainnya)
             
             Spacer(modifier = Modifier.height(40.dp))
@@ -442,7 +448,22 @@ fun FacilitySectionSingle(title: String, items: List<String>, selectedItem: Stri
 }
 
 @Composable
-fun CreateTripStep4Screen(navController: NavHostController) {
+fun CreateTripStep4Screen(navController: NavHostController, viewModel: CreateTripViewModel) {
+    val context = LocalContext.current
+    val tripName = viewModel.tripName.value
+    val location = viewModel.location.value
+    val duration = viewModel.duration.value
+    val meetingPoint = viewModel.meetingPoint.value
+    val meetingTime = viewModel.meetingTime.value
+    val imageUri = viewModel.imageUri.value
+    
+    val allFacilities = mutableListOf<String>()
+    allFacilities.addAll(viewModel.selectedTransport)
+    if (viewModel.selectedAcomodation.value.isNotEmpty()) allFacilities.add(viewModel.selectedAcomodation.value)
+    if (viewModel.selectedMakan.value.isNotEmpty()) allFacilities.add(viewModel.selectedMakan.value)
+    if (viewModel.selectedTiket.value.isNotEmpty()) allFacilities.add(viewModel.selectedTiket.value)
+    allFacilities.addAll(viewModel.selectedLainnya)
+
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         StepHeader(4, navController)
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
@@ -452,15 +473,24 @@ fun CreateTripStep4Screen(navController: NavHostController) {
             
             Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
                 Row(modifier = Modifier.padding(12.dp)) {
-                    Box(modifier = Modifier.size(80.dp).background(Color.LightGray, RoundedCornerShape(8.dp)))
+                    Box(modifier = Modifier.size(80.dp).background(Color.LightGray, RoundedCornerShape(8.dp)).clip(RoundedCornerShape(8.dp))) {
+                        if (imageUri != null) {
+                            AsyncImage(
+                                model = imageUri,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text("Bromo & Malang Trip", fontWeight = FontWeight.Bold)
+                        Text(tripName, fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(14.dp), tint = Color.Gray)
-                            Text("Malang, Jawa Timur", fontSize = 12.sp, color = Color.Gray)
+                            Text(location, fontSize = 12.sp, color = Color.Gray)
                         }
-                        Text("24 April - 26 April 2026", fontSize = 12.sp, color = Color.Gray)
+                        Text(duration, fontSize = 12.sp, color = Color.Gray)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Flag, null, modifier = Modifier.size(14.dp), tint = Color.Gray)
                             Text(" Trip Mendatang", fontSize = 12.sp, color = Color.Gray)
@@ -471,27 +501,62 @@ fun CreateTripStep4Screen(navController: NavHostController) {
             
             Spacer(modifier = Modifier.height(24.dp))
             Text("Rincian Trip", fontWeight = FontWeight.Bold)
-            DetailRow("Meeting Point", "Stasiun Malang")
-            DetailRow("Waktu Meeting", "08:00 WIB")
-            DetailRow("Durasi Trip", "3 Hari 2 Malam")
+            DetailRow("Meeting Point", meetingPoint)
+            DetailRow("Waktu Meeting", meetingTime)
+            DetailRow("Durasi Trip", duration)
             DetailRow("Kapasitas Peserta", "8/16 Orang")
             DetailRow("Harga per Orang", "Rp3.000.000")
             
             Spacer(modifier = Modifier.height(16.dp))
             Text("Itinerary", fontWeight = FontWeight.Bold)
             Column(modifier = Modifier.padding(start = 8.dp)) {
-                ItinerarySummaryItem("Day 1 - Berangkat")
-                ItinerarySummaryItem("Day 2 - Bromo Sunrise Tour")
-                ItinerarySummaryItem("Day 3 - Explore Malang")
+                viewModel.itineraryList.forEach { (title, _) ->
+                    ItinerarySummaryItem(title)
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
             Text("Fasilitas", fontWeight = FontWeight.Bold)
-            Text("Motor, Hotel, Makan Termasuk, Tiket Masuk Termasuk, Air Mineral, Asuransi, Dokumentasi, Snack", fontSize = 12.sp, color = Color.Gray)
+            Text(allFacilities.joinToString(", "), fontSize = 12.sp, color = Color.Gray)
 
             Spacer(modifier = Modifier.height(40.dp))
             Button(
-                onClick = { navController.navigate(Screen.Home.route) },
+                onClick = { 
+                    var base64Image = ""
+                    if (imageUri != null) {
+                        try {
+                            val inputStream = context.contentResolver.openInputStream(imageUri)
+                            val bitmap = BitmapFactory.decodeStream(inputStream)
+                            val outputStream = ByteArrayOutputStream()
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 20, outputStream) // Compress to 20%
+                            val byteArray = outputStream.toByteArray()
+                            base64Image = "data:image/jpeg;base64," + Base64.encodeToString(byteArray, Base64.DEFAULT)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+
+                    val newTrip = TripData(
+                        id = "",
+                        title = tripName,
+                        location = location,
+                        date = duration,
+                        price = "Rp3.000.000",
+                        category = "Open Trip",
+                        imageName = base64Image
+                    )
+                    
+                    val database = FirebaseDatabase.getInstance()
+                    val tripsRef = database.getReference("trips")
+                    val newRef = tripsRef.push()
+                    newTrip.id = newRef.key ?: ""
+                    newRef.setValue(newTrip)
+
+                    viewModel.reset()
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(0)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
                 shape = RoundedCornerShape(28.dp)

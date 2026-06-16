@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.remotivi.mytripmyadventure" />
+                  <option name="mobileSdkAppId" value="1:507619459340:android:bfce3b01bf23413a470929" />
+                  <option name="projectId" value="mytripmyadventure-2026-396b4" />
+                  <option name="projectNumber" value="507619459340" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

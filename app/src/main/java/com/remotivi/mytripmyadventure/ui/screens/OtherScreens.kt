@@ -19,12 +19,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.userProfileChangeRequest
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.components.SearchBar
 import com.remotivi.mytripmyadventure.ui.components.TripData
@@ -210,26 +217,87 @@ fun ChatBubble(text: String, isMe: Boolean) {
 
 @Composable
 fun ProfileScreen(navController: NavHostController) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
+    val user = auth.currentUser
+    val name = user?.displayName?.takeIf { it.isNotBlank() } ?: "Petualang"
+    val email = user?.email ?: "Belum ada email"
+
+    var username by remember { mutableStateOf("satisyaa") }
+    var bio by remember { mutableStateOf("Life is short, travel more!") }
+    var profileImage by remember { mutableStateOf("") }
+
+    LaunchedEffect(user?.uid) {
+        if (user != null) {
+            val db = FirebaseDatabase.getInstance().getReference("users").child(user.uid)
+            db.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        username = snapshot.child("username").getValue(String::class.java) ?: "satisyaa"
+                        bio = snapshot.child("bio").getValue(String::class.java) ?: "Life is short, travel more!"
+                        profileImage = snapshot.child("profileImage").getValue(String::class.java) ?: ""
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Spacer(modifier = Modifier.height(40.dp))
         // Profile Header
         Card(modifier = Modifier.padding(20.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color.Black)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(80.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
-                        Icon(
-                            Icons.Default.Edit, 
-                            null, 
-                            modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp).clickable { navController.navigate(Screen.EditProfile.route) }, 
-                            tint = Color.White
-                        )
+                    if (profileImage.isNotBlank() && profileImage.startsWith("data:image")) {
+                        val decodedBitmap: android.graphics.Bitmap? = remember(profileImage) {
+                            try {
+                                val base64String = profileImage.substringAfter("base64,")
+                                val decodedBytes = android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+                                android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                            } catch (e: Exception) { null }
+                        }
+                        if (decodedBitmap != null) {
+                            Box(modifier = Modifier.size(80.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
+                                androidx.compose.foundation.Image(
+                                    bitmap = decodedBitmap.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                                Icon(
+                                    Icons.Default.Edit, 
+                                    null, 
+                                    modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp).clickable { navController.navigate(Screen.EditProfile.route) }, 
+                                    tint = Color.White
+                                )
+                            }
+                        } else {
+                            Box(modifier = Modifier.size(80.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
+                                Icon(
+                                    Icons.Default.Edit, 
+                                    null, 
+                                    modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp).clickable { navController.navigate(Screen.EditProfile.route) }, 
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    } else {
+                        Box(modifier = Modifier.size(80.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
+                            Icon(
+                                Icons.Default.Edit, 
+                                null, 
+                                modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp).clickable { navController.navigate(Screen.EditProfile.route) }, 
+                                tint = Color.White
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text("Elisa Tisya Nugraha", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Text("@satisyaa", color = Color.Gray, fontSize = 14.sp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(name, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("@$username", color = Color.Gray, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Life is short, travel more!", fontSize = 12.sp)
+                        Text(bio, fontSize = 12.sp)
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -318,6 +386,25 @@ fun ProfileScreen(navController: NavHostController) {
              }
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = {
+                auth.signOut()
+                val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(
+                    context,
+                    com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+                )
+                googleSignInClient.signOut()
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+            shape = RoundedCornerShape(25.dp)
+        ) {
+            Text("Logout", color = Color.White, fontWeight = FontWeight.Bold)
+        }
         Spacer(modifier = Modifier.height(40.dp))
     }
 }
@@ -627,9 +714,46 @@ fun EditPreferencesScreen(navController: NavHostController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(navController: NavHostController) {
-    var name by remember { mutableStateOf("Elisa Tisya Nugraha") }
+    val auth = remember { FirebaseAuth.getInstance() }
+    val user = auth.currentUser
+
+    var name by remember { mutableStateOf(user?.displayName?.takeIf { it.isNotBlank() } ?: "Petualang") }
     var username by remember { mutableStateOf("satisyaa") }
     var bio by remember { mutableStateOf("Life is short, travel more!") }
+    var profileImage by remember { mutableStateOf("") }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(it)
+                val bytes = inputStream?.readBytes()
+                val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+                profileImage = "data:image/jpeg;base64,$base64"
+                inputStream?.close()
+            } catch (e: Exception) {
+                // handle error silently
+            }
+        }
+    }
+
+    LaunchedEffect(user?.uid) {
+        if (user != null) {
+            val db = FirebaseDatabase.getInstance().getReference("users").child(user.uid)
+            db.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        username = snapshot.child("username").getValue(String::class.java) ?: "satisyaa"
+                        bio = snapshot.child("bio").getValue(String::class.java) ?: "Life is short, travel more!"
+                        profileImage = snapshot.child("profileImage").getValue(String::class.java) ?: ""
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        }
+    }
     
     Scaffold(
         topBar = {
@@ -641,7 +765,27 @@ fun EditProfileScreen(navController: NavHostController) {
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Box(modifier = Modifier.size(100.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
+                Box(
+                    modifier = Modifier.size(100.dp).background(Color.LightGray, CircleShape).clickable { launcher.launch("image/*") }, 
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    if (profileImage.isNotBlank() && profileImage.startsWith("data:image")) {
+                        val decodedBitmap: android.graphics.Bitmap? = remember(profileImage) {
+                            try {
+                                val base64String = profileImage.substringAfter("base64,")
+                                val decodedBytes = android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+                                android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                            } catch (e: Exception) { null }
+                        }
+                        if (decodedBitmap != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = decodedBitmap.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        }
+                    }
                     Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(32.dp).background(DarkGreen, CircleShape).padding(6.dp), tint = Color.White)
                 }
             }
@@ -657,7 +801,28 @@ fun EditProfileScreen(navController: NavHostController) {
             
             Spacer(modifier = Modifier.weight(1f))
             Button(
-                onClick = { navController.popBackStack() },
+                onClick = { 
+                    if (user != null) {
+                        val profileUpdates = userProfileChangeRequest {
+                            displayName = name
+                        }
+                        user.updateProfile(profileUpdates).addOnCompleteListener {
+                            val db = FirebaseDatabase.getInstance().getReference("users").child(user.uid)
+                            val userData = mapOf(
+                                "username" to username,
+                                "bio" to bio,
+                                "name" to name,
+                                "email" to (user.email ?: ""),
+                                "profileImage" to profileImage
+                            )
+                            db.updateChildren(userData).addOnCompleteListener {
+                                navController.popBackStack()
+                            }
+                        }
+                    } else {
+                        navController.popBackStack()
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
                 shape = RoundedCornerShape(28.dp)

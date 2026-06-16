@@ -22,8 +22,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
 import androidx.navigation.NavHostController
 import com.remotivi.mytripmyadventure.Screen
+import androidx.compose.ui.platform.LocalContext
 import com.remotivi.mytripmyadventure.ui.components.ReviewData
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
@@ -42,6 +49,11 @@ fun ReviewScreen(
     var rating by remember { mutableIntStateOf(0) }
     var reviewText by remember { mutableStateOf("") }
     var selectedTags by remember { mutableStateOf(setOf<String>()) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        selectedImageUri = uri
+    }
 
     val reviewTags = listOf(
         "Pemandangan Indah", "Guide Profesional", "Tepat Waktu",
@@ -179,31 +191,57 @@ fun ReviewScreen(
             // Photo upload placeholder
             Text("Tambah Foto (Opsional)", fontWeight = FontWeight.Bold, fontSize = 15.sp)
             Spacer(modifier = Modifier.height(8.dp))
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
-                    .background(LightGrey.copy(0.3f), RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.AddPhotoAlternate, null, tint = Color.Gray, modifier = Modifier.size(24.dp))
-                    Text("Tambah", fontSize = 9.sp, color = Color.Gray)
+            if (selectedImageUri == null) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp))
+                        .background(LightGrey.copy(0.3f), RoundedCornerShape(12.dp))
+                        .clickable { launcher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.AddPhotoAlternate, null, tint = Color.Gray, modifier = Modifier.size(24.dp))
+                        Text("Tambah", fontSize = 9.sp, color = Color.Gray)
+                    }
                 }
+            } else {
+                AsyncImage(
+                    model = selectedImageUri,
+                    contentDescription = "Selected Image",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { launcher.launch("image/*") },
+                    contentScale = ContentScale.Crop
+                )
             }
 
             Spacer(modifier = Modifier.height(40.dp))
 
+            val context = LocalContext.current
             Button(
                 onClick = {
                     if (isFormValid) {
+                        val base64String = selectedImageUri?.let { uri ->
+                            try {
+                                val inputStream = context.contentResolver.openInputStream(uri)
+                                val bytes = inputStream?.readBytes()
+                                inputStream?.close()
+                                if (bytes != null) {
+                                    "data:image/jpeg;base64," + android.util.Base64.encodeToString(bytes as ByteArray, android.util.Base64.DEFAULT)
+                                } else null
+                            } catch (e: Exception) { null }
+                        }
+                        
                         onSaveReview(
                             ReviewData(
                                 tripTitle = tripId,
                                 rating = rating,
                                 comment = reviewText,
                                 date = "Today",
-                                tags = selectedTags.toList()
+                                tags = selectedTags.toList(),
+                                imageUri = base64String ?: selectedImageUri?.toString()
                             )
                         )
                     }
@@ -409,7 +447,10 @@ fun MyReviewsScreen(navController: NavHostController, allReviews: List<ReviewDat
                 }
 
                 items(allReviews) { review ->
-                    MyReviewCard(review)
+                    MyReviewCard(
+                        review = review,
+                        onClick = { navController.navigate("review_detail/${review.id}") }
+                    )
                 }
 
                 item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -418,10 +459,14 @@ fun MyReviewsScreen(navController: NavHostController, allReviews: List<ReviewDat
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyReviewCard(review: ReviewData) {
+fun MyReviewCard(review: ReviewData, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp)
+            .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         border = androidx.compose.foundation.BorderStroke(1.dp, LightGrey),
         shape = RoundedCornerShape(16.dp),
@@ -467,6 +512,16 @@ fun MyReviewCard(review: ReviewData) {
                         }
                     }
                 }
+            }
+            if (review.imageUri != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                com.remotivi.mytripmyadventure.ui.components.ReviewImageDisplay(
+                    imageUri = review.imageUri,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
             }
         }
     }

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "507619459340",
+    "project_id": "mytripmyadventure-2026-396b4",
+    "storage_bucket": "mytripmyadventure-2026-396b4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:507619459340:android:bfce3b01bf23413a470929",
+        "android_client_info": {
+
+          "package_name": "com.remotivi.mytripmyadventure"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "507619459340-g4liml4fn7m8raem85q47130afusmjdn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.remotivi.mytripmyadventure",
+            "certificate_hash": "3a1ebf7c4769b7ced5a884b064b9368d25c6168d"
+          }
+        },
+        {
+          "client_id": "507619459340-9jt2cng6kgqsavi4r69jdgv1gu6c5513.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCira61XxzGenzwbonUGQrFRnehV2ISZZo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "507619459340-9jt2cng6kgqsavi4r69jdgv1gu6c5513.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

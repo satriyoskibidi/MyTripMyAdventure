@@ -214,7 +214,7 @@ fun VoucherScreen(navController: NavHostController) {
 data class VoucherData(val code: String, val desc: String, val expiry: String)
 
 @Composable
-fun PaymentSuccessScreen(navController: NavHostController, tripTitle: String) {
+fun PaymentSuccessScreen(navController: NavHostController, tripTitle: String, method: String) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -228,7 +228,11 @@ fun PaymentSuccessScreen(navController: NavHostController, tripTitle: String) {
         
         Spacer(modifier = Modifier.height(48.dp))
         Button(
-            onClick = { navController.navigate("e_ticket/$tripTitle") { popUpTo("home") } },
+            onClick = { 
+                val encodedMethod = android.net.Uri.encode(method)
+                val encodedTripTitle = android.net.Uri.encode(tripTitle)
+                navController.navigate("e_ticket/$encodedTripTitle?method=${encodedMethod}") { popUpTo("home") } 
+            },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
             shape = RoundedCornerShape(28.dp)
@@ -237,11 +241,13 @@ fun PaymentSuccessScreen(navController: NavHostController, tripTitle: String) {
         }
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedButton(
-            onClick = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
+            onClick = { navController.navigate(Screen.MyTrips.route) { 
+                popUpTo(navController.graph.startDestinationId) { inclusive = false } 
+            } },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(28.dp)
         ) {
-            Text("Kembali ke Home", color = DarkGreen)
+            Text("Ke Riwayat Perjalanan", color = DarkGreen)
         }
     }
 }

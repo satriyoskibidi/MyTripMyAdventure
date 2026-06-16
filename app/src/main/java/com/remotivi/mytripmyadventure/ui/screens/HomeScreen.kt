@@ -1,6 +1,7 @@
 package com.remotivi.mytripmyadventure.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -55,12 +56,7 @@ fun HomeScreen(navController: NavHostController, allTrips: SnapshotStateList<Tri
     ) {
         item(span = { GridItemSpan(2) }) {
             Column {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Icon(Icons.Default.Menu, contentDescription = null, modifier = Modifier.size(32.dp))
-                    IconButton(onClick = { navController.navigate(Screen.Notifications.route) }) {
-                        Icon(Icons.Outlined.Notifications, contentDescription = null, modifier = Modifier.size(32.dp))
-                    }
-                }
+
                 Spacer(modifier = Modifier.height(20.dp))
                 Text("Let’s Choose\nYour Trip", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 Spacer(modifier = Modifier.height(20.dp))
@@ -103,7 +99,16 @@ fun HomeScreen(navController: NavHostController, allTrips: SnapshotStateList<Tri
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Available Now", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("See All", color = Color(0xFF3498DB), fontSize = 14.sp)
+                    Text(
+                        "See All", 
+                        color = Color(0xFF3498DB), 
+                        fontSize = 14.sp,
+                        modifier = Modifier.clickable {
+                            searchQuery = ""
+                            selectedCategory = null
+                            showCategories = false
+                        }
+                    )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }

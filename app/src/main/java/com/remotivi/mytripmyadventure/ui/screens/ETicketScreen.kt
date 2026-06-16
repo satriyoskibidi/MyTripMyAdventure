@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,16 +22,23 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import com.remotivi.mytripmyadventure.ui.components.TripData
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 import com.remotivi.mytripmyadventure.ui.theme.PriceOrange
 
+import com.google.firebase.auth.FirebaseAuth
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ETicketScreen(tripId: String, navController: NavHostController, allTrips: List<TripData>) {
+fun ETicketScreen(tripId: String, method: String, navController: NavHostController, allTrips: List<TripData>) {
     val trip = allTrips.find { it.title == tripId } ?: allTrips[0]
+    
+    val auth = remember { FirebaseAuth.getInstance() }
+    val user = auth.currentUser
+    val userName = user?.displayName?.takeIf { it.isNotBlank() } ?: "Petualang"
 
     Scaffold(
         topBar = {
@@ -69,7 +77,7 @@ fun ETicketScreen(tripId: String, navController: NavHostController, allTrips: Li
                         Spacer(modifier = Modifier.height(24.dp))
                         
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TicketInfoItem("Nama Pemesan", "John Doe")
+                            TicketInfoItem("Nama Pemesan", userName)
                             TicketInfoItem("Jumlah Peserta", "1 Orang", Alignment.End)
                         }
                         
@@ -107,7 +115,7 @@ fun ETicketScreen(tripId: String, navController: NavHostController, allTrips: Li
                         Spacer(modifier = Modifier.height(12.dp))
                         
                         TicketPaymentRow("ID Transaksi", "TRX-9928371")
-                        TicketPaymentRow("Metode Pembayaran", "Bank BCA")
+                        TicketPaymentRow("Metode Pembayaran", method)
                         TicketPaymentRow("Status Pembayaran", "Lunas")
                         
                         Spacer(modifier = Modifier.height(12.dp))
@@ -128,8 +136,11 @@ fun ETicketScreen(tripId: String, navController: NavHostController, allTrips: Li
             
             Spacer(modifier = Modifier.height(24.dp))
             
+            val context = LocalContext.current
             Button(
-                onClick = { /* Download PDF */ },
+                onClick = { 
+                    android.widget.Toast.makeText(context, "Downloading E-Ticket PDF...", android.widget.Toast.LENGTH_SHORT).show()
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
                 shape = RoundedCornerShape(28.dp)

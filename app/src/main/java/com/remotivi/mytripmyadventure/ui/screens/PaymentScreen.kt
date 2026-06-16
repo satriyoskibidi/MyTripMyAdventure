@@ -19,16 +19,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import com.remotivi.mytripmyadventure.R
 import com.remotivi.mytripmyadventure.ui.components.TripData
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 import com.remotivi.mytripmyadventure.ui.theme.PriceOrange
+
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +54,11 @@ fun PaymentScreen(tripId: String, navController: NavHostController, allTrips: Li
         },
         bottomBar = {
             Button(
-                onClick = { /* Implement payment logic */ },
+                onClick = {
+                    val encodedMethod = android.net.Uri.encode(selectedMethod)
+                    val encodedTripId = android.net.Uri.encode(tripId)
+                    navController.navigate("virtual_account/${encodedTripId}?method=${encodedMethod}") 
+                },
                 modifier = Modifier.fillMaxWidth().padding(24.dp).height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
                 shape = RoundedCornerShape(28.dp)
@@ -63,31 +72,45 @@ fun PaymentScreen(tripId: String, navController: NavHostController, allTrips: Li
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Surface(color = Color(0xFFFFF9C4), shape = RoundedCornerShape(12.dp)) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.AccessTime, null, tint = Color(0xFFF39C12), modifier = Modifier.size(40.dp))
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text("Selesaikan pembayaran dalam", fontSize = 12.sp)
-                            Text("59:48", color = PriceOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                            Text("Jika melewati batas waktu, pembayaran akan dianggap gagal.", fontSize = 10.sp, color = Color.Gray)
-                        }
-                    }
-                }
-            }
-
-            item {
                 Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                     Row(modifier = Modifier.padding(12.dp)) {
-                        if (trip.imageRes != 0) {
-                            Image(
-                                painter = painterResource(id = trip.imageRes),
-                                contentDescription = null,
-                                modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)),
-                                contentScale = ContentScale.Crop
-                            )
+                        val context = LocalContext.current
+                        if (trip.imageName.startsWith("data:image")) {
+                            val decodedBitmap: android.graphics.Bitmap? = remember(trip.imageName) {
+                                try {
+                                    val base64String = trip.imageName.substringAfter("base64,")
+                                    val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
+                                    BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                            if (decodedBitmap != null) {
+                                Image(
+                                    bitmap = decodedBitmap.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(modifier = Modifier.size(100.dp).background(Color.LightGray, RoundedCornerShape(12.dp)))
+                            }
                         } else {
-                            Box(modifier = Modifier.size(100.dp).background(Color.LightGray, RoundedCornerShape(12.dp)))
+                            val resolvedImageRes = if (trip.imageRes != 0) trip.imageRes 
+                                else if (trip.imageName.isNotEmpty()) {
+                                    context.resources.getIdentifier(trip.imageName, "drawable", context.packageName)
+                                } else 0
+                                
+                            if (resolvedImageRes != 0) {
+                                Image(
+                                    painter = androidx.compose.ui.res.painterResource(id = resolvedImageRes),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(modifier = Modifier.size(100.dp).background(Color.LightGray, RoundedCornerShape(12.dp)))
+                            }
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
@@ -161,7 +184,7 @@ fun PaymentMethodItem(method: PaymentMethodData, isSelected: Boolean, onSelect: 
             Spacer(modifier = Modifier.width(12.dp))
             if (method.iconRes != 0) {
                 Image(
-                    painter = painterResource(id = method.iconRes),
+                    painter = androidx.compose.ui.res.painterResource(id = method.iconRes),
                     contentDescription = null,
                     modifier = Modifier.size(40.dp)
                 )
