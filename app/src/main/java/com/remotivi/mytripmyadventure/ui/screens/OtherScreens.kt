@@ -19,12 +19,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.userProfileChangeRequest
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.components.SearchBar
 import com.remotivi.mytripmyadventure.ui.components.TripData
@@ -32,8 +39,6 @@ import com.remotivi.mytripmyadventure.ui.components.TripItemCard
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 import com.remotivi.mytripmyadventure.ui.theme.PriceOrange
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun FavoriteScreen(navController: NavHostController, allTrips: MutableList<TripData>) {
@@ -47,9 +52,9 @@ fun FavoriteScreen(navController: NavHostController, allTrips: MutableList<TripD
             Text("Favorite", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Icon(Icons.Default.Search, null)
         }
-
+        
         Spacer(modifier = Modifier.height(24.dp))
-
+        
         if (favoriteTrips.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -167,7 +172,7 @@ fun DetailChatScreen(name: String, navController: NavHostController) {
             Surface(tonalElevation = 4.dp, color = Color.White) {
                 Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
-                        value = messageText,
+                        value = messageText, 
                         onValueChange = { messageText = it },
                         placeholder = { Text("Ketik pesan...") },
                         modifier = Modifier.weight(1f),
@@ -175,12 +180,12 @@ fun DetailChatScreen(name: String, navController: NavHostController) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
-                        onClick = {
+                        onClick = { 
                             if (messageText.isNotBlank()) {
                                 messages.add(messageText to true)
                                 messageText = ""
                             }
-                        },
+                        }, 
                         modifier = Modifier.background(if (messageText.isNotBlank()) DarkGreen else Color.Gray, CircleShape),
                         enabled = messageText.isNotBlank()
                     ) {
@@ -211,77 +216,105 @@ fun ChatBubble(text: String, isMe: Boolean) {
 }
 
 @Composable
-fun ProfileScreen(navController: NavHostController) {
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
-    val uid = auth.currentUser?.uid ?: ""
+fun ProfileScreen(navController: NavHostController, allTrips: List<TripData>) {
+    val joinedCount = allTrips.filter { it.isJoined || it.isCompleted }.size
+    val wishlistCount = allTrips.filter { it.isFavorite }.size
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val auth = remember { FirebaseAuth.getInstance() }
+    val user = auth.currentUser
+    val name = user?.displayName?.takeIf { it.isNotBlank() } ?: "Petualang"
+    val email = user?.email ?: "Belum ada email"
 
-    var nama by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var bio by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("satisyaa") }
+    var bio by remember { mutableStateOf("Life is short, travel more!") }
+    var profileImage by remember { mutableStateOf("") }
 
-    LaunchedEffect(uid) {
-        if (uid.isNotEmpty()) {
-            db.collection("users").document(uid).get()
-                .addOnSuccessListener { doc ->
-                    nama = doc.getString("nama") ?: ""
-                    username = doc.getString("username") ?: ""
-                    bio = doc.getString("bio") ?: ""
+    LaunchedEffect(user?.uid) {
+        if (user != null) {
+            val db = FirebaseDatabase.getInstance().getReference("users").child(user.uid)
+            db.addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        username = snapshot.child("username").getValue(String::class.java) ?: "satisyaa"
+                        bio = snapshot.child("bio").getValue(String::class.java) ?: "Life is short, travel more!"
+                        profileImage = snapshot.child("profileImage").getValue(String::class.java) ?: ""
+                    }
                 }
+                override fun onCancelled(error: DatabaseError) {}
+            })
         }
     }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Spacer(modifier = Modifier.height(40.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Profil Saya", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
-                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = DarkGreen)
-            }
-        }
         // Profile Header
-        Card(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color.Black)) {
+        Card(modifier = Modifier.padding(20.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color.Black)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(80.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
-                        Icon(
-                            Icons.Default.Edit,
-                            null,
-                            modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp).clickable { navController.navigate(Screen.EditProfile.route) },
-                            tint = Color.White
-                        )
+                    if (profileImage.isNotBlank() && profileImage.startsWith("data:image")) {
+                        val decodedBitmap: android.graphics.Bitmap? = remember(profileImage) {
+                            try {
+                                val base64String = profileImage.substringAfter("base64,")
+                                val decodedBytes = android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+                                android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                            } catch (e: Exception) { null }
+                        }
+                        if (decodedBitmap != null) {
+                            Box(modifier = Modifier.size(80.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
+                                androidx.compose.foundation.Image(
+                                    bitmap = decodedBitmap.asImageBitmap(),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                                Icon(
+                                    Icons.Default.Edit, 
+                                    null, 
+                                    modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp).clickable { navController.navigate(Screen.EditProfile.route) }, 
+                                    tint = Color.White
+                                )
+                            }
+                        } else {
+                            Box(modifier = Modifier.size(80.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
+                                Icon(
+                                    Icons.Default.Edit, 
+                                    null, 
+                                    modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp).clickable { navController.navigate(Screen.EditProfile.route) }, 
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    } else {
+                        Box(modifier = Modifier.size(80.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
+                            Icon(
+                                Icons.Default.Edit, 
+                                null, 
+                                modifier = Modifier.size(24.dp).background(DarkGreen, CircleShape).padding(4.dp).clickable { navController.navigate(Screen.EditProfile.route) }, 
+                                tint = Color.White
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(if (nama.isEmpty()) "..." else nama, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Text(if (username.isEmpty()) "@..." else "@$username", color = Color.Gray, fontSize = 14.sp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(name, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("@$username", color = Color.Gray, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(if (bio.isEmpty()) "" else bio, fontSize = 12.sp)
+                        Text(bio, fontSize = 12.sp)
                     }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    ProfileStatItem(Icons.Default.Star, "5.0", "(100 Reviews)")
-                    ProfileStatItem(Icons.Default.VerifiedUser, "Trusted Traveler", "Level 3")
-                    ProfileStatItem(Icons.Default.Groups, "87,5%", "Match Rate")
                 }
             }
         }
-
+        
         // Stats Row
         Row(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox("12", "Trip Joined", Icons.Default.WorkOutline, Modifier.weight(1f)) { navController.navigate(Screen.TripJoined.route) }
+            StatBox(joinedCount.toString(), "Trip Joined", Icons.Default.WorkOutline, Modifier.weight(1f)) { navController.navigate(Screen.TripJoined.route) }
             StatBox("5", "Trip Created", Icons.Default.Flag, Modifier.weight(1f)) { navController.navigate(Screen.TripCreated.route) }
-            StatBox("8", "Wishlist", Icons.Default.FavoriteBorder, Modifier.weight(1f)) { navController.navigate(Screen.Wishlist.route) }
+            StatBox(wishlistCount.toString(), "Wishlist", Icons.Default.FavoriteBorder, Modifier.weight(1f)) { navController.navigate(Screen.Wishlist.route) }
             StatBox("Medium", "Budget Level", Icons.Default.AccountBalanceWallet, Modifier.weight(1f)) { navController.navigate(Screen.Budget.route) }
         }
-
+        
         Spacer(modifier = Modifier.height(20.dp))
-
+        
         // Travel Preference
         Card(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = DarkGreen)) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -292,7 +325,7 @@ fun ProfileScreen(navController: NavHostController) {
                         Text("My Travel Preference", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                     Surface(
-                        color = Color(0xFFFDF5E6),
+                        color = Color(0xFFFDF5E6), 
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.clickable { navController.navigate(Screen.EditPreferences.route) }
                     ) {
@@ -311,63 +344,63 @@ fun ProfileScreen(navController: NavHostController) {
                 }
             }
         }
-
+        
         Spacer(modifier = Modifier.height(20.dp))
-
+        
         // Quick Access to Features
         Text("Travel Tools", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
         Row(modifier = Modifier.padding(20.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            FeatureIcon(Icons.Default.Groups, "Matching") { navController.navigate(Screen.Matching.route) }
-            FeatureIcon(Icons.Default.EventNote, "Planner") { navController.navigate(Screen.Planner.route) }
-            FeatureIcon(Icons.Default.AccountBalanceWallet, "Budget") { navController.navigate(Screen.Budget.route) }
-            FeatureIcon(Icons.AutoMirrored.Filled.Message, "Chat") { navController.navigate(Screen.Chat.route) }
+             FeatureIcon(Icons.Default.Groups, "Matching") { navController.navigate(Screen.Matching.route) }
+             FeatureIcon(Icons.Default.EventNote, "Planner") { navController.navigate(Screen.Planner.route) }
+             FeatureIcon(Icons.Default.AccountBalanceWallet, "Budget") { navController.navigate(Screen.Budget.route) }
+             FeatureIcon(Icons.AutoMirrored.Filled.Message, "Chat") { navController.navigate(Screen.Chat.route) }
         }
 
         // Safety & Security
         Card(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, LightGrey)) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { navController.navigate(Screen.Security.route) }) {
-                    Icon(Icons.Default.Shield, null, tint = DarkGreen)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Safety & Security", fontWeight = FontWeight.Bold)
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    SecurityCircleItem(Icons.Default.Verified, "Verified Account", "Terverifikasi") {
-                        navController.navigate(Screen.VerifiedAccount.route)
-                    }
-                    SecurityCircleItem(Icons.Default.LocationOn, "Alamat", "Lampung") {
-                        navController.navigate(Screen.Address.route)
-                    }
-                    SecurityCircleItem(Icons.Default.Call, "Emergency", "2 Kontak") {
-                        navController.navigate(Screen.EmergencyContact.route)
-                    }
-                    SecurityCircleItem(Icons.Default.Flag, "Report Center", "Laporkan User") {
-                        navController.navigate(Screen.ReportCenter.route)
-                    }
-                }
-            }
+             Column(modifier = Modifier.padding(16.dp)) {
+                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { navController.navigate(Screen.Security.route) }) {
+                     Icon(Icons.Default.Shield, null, tint = DarkGreen)
+                     Spacer(modifier = Modifier.width(8.dp))
+                     Text("Safety & Security", fontWeight = FontWeight.Bold)
+                 }
+                 Spacer(modifier = Modifier.height(16.dp))
+                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                     SecurityCircleItem(Icons.Default.Verified, "Verified Account", "Terverifikasi") {
+                         navController.navigate(Screen.VerifiedAccount.route)
+                     }
+                     SecurityCircleItem(Icons.Default.LocationOn, "Alamat", "Lampung") {
+                         navController.navigate(Screen.Address.route)
+                     }
+                     SecurityCircleItem(Icons.Default.Call, "Emergency", "2 Kontak") {
+                         navController.navigate(Screen.EmergencyContact.route)
+                     }
+                     SecurityCircleItem(Icons.Default.Flag, "Report Center", "Laporkan User") {
+                         navController.navigate(Screen.ReportCenter.route)
+                     }
+                 }
+             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Logout Button
-        val context = androidx.compose.ui.platform.LocalContext.current
+        Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = {
-                com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                (context as? android.app.Activity)?.recreate()
+                auth.signOut()
+                val googleSignInClient = com.google.android.gms.auth.api.signin.GoogleSignIn.getClient(
+                    context,
+                    com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+                )
+                googleSignInClient.signOut()
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color.Red),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+            shape = RoundedCornerShape(25.dp)
         ) {
-            Text("Logout", color = androidx.compose.ui.graphics.Color.White)
+            Text("Logout", color = Color.White, fontWeight = FontWeight.Bold)
         }
-
         Spacer(modifier = Modifier.height(40.dp))
     }
 }
@@ -437,7 +470,7 @@ fun MatchingScreen(navController: NavHostController) {
         }
         Text("Temukan teman perjalanan yang sehobi denganmu!", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(start = 12.dp))
         Spacer(modifier = Modifier.height(20.dp))
-
+        
         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             items(listOf(
                 MatchUser("Andi Pratama", "Lampung", 98, listOf("Hiking", "Photography")),
@@ -488,7 +521,7 @@ fun PlannerScreen(navController: NavHostController) {
             Text("Trip Planner", fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(16.dp))
-
+        
         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = DarkGreen)) {
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Event, null, tint = Color.White, modifier = Modifier.size(40.dp))
@@ -499,11 +532,11 @@ fun PlannerScreen(navController: NavHostController) {
                 }
             }
         }
-
+        
         Spacer(modifier = Modifier.height(24.dp))
         Text("Daily Schedule", fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(12.dp))
-
+        
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(listOf(
                 PlanItem("08:00", "Meeting Point", "Stasiun Malang Kota Baru"),
@@ -525,7 +558,7 @@ fun PlannerScreen(navController: NavHostController) {
                 }
             }
         }
-
+        
         Spacer(modifier = Modifier.weight(1f))
         FloatingActionButton(
             onClick = { /* Add plan */ },
@@ -548,7 +581,7 @@ fun BudgetScreen(navController: NavHostController) {
             Text("Budget Tracker", fontSize = 22.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(20.dp))
-
+        
         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF2C3E50))) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text("Total Spending", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
@@ -558,24 +591,24 @@ fun BudgetScreen(navController: NavHostController) {
                 Text("65% of your Rp 7.000.000 limit", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
             }
         }
-
+        
         Spacer(modifier = Modifier.height(24.dp))
         Text("Categories", fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(12.dp))
-
+        
         BudgetCategoryItem(Icons.Default.Hotel, "Accommodation", "Rp 2.000.000", Color(0xFF3498DB))
         BudgetCategoryItem(Icons.Default.DirectionsBus, "Transport", "Rp 1.200.000", Color(0xFFE67E22))
         BudgetCategoryItem(Icons.Default.Restaurant, "Food & Drinks", "Rp 800.000", Color(0xFF27AE60))
         BudgetCategoryItem(Icons.Default.ConfirmationNumber, "Activities", "Rp 500.000", Color(0xFF9B59B6))
-
+        
         Spacer(modifier = Modifier.height(24.dp))
         Text("Recent Transactions", fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(12.dp))
-
+        
         TransactionItem("Hotel Bromo Permai", "Yesterday", "- Rp 1.500.000")
         TransactionItem("Nasi Goreng Pak Jo", "Yesterday", "- Rp 35.000")
         TransactionItem("Bensin Mobil", "2 days ago", "- Rp 200.000")
-
+        
         Spacer(modifier = Modifier.height(40.dp))
     }
 }
@@ -610,7 +643,7 @@ fun EditPreferencesScreen(navController: NavHostController) {
     var budget by remember { mutableStateOf("Low - Mid") }
     var style by remember { mutableStateOf("Adventurer") }
     var availableTime by remember { mutableStateOf("Weekend Only") }
-
+    
     val isFormValid = favDestinations.isNotBlank() && availableTime.isNotBlank()
 
     Scaffold(
@@ -625,13 +658,13 @@ fun EditPreferencesScreen(navController: NavHostController) {
             Text("Destinasi Favorit *", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = favDestinations,
-                onValueChange = { favDestinations = it },
+                value = favDestinations, 
+                onValueChange = { favDestinations = it }, 
                 modifier = Modifier.fillMaxWidth(),
                 isError = favDestinations.isBlank(),
                 supportingText = { if (favDestinations.isBlank()) Text("Wajib diisi", color = Color.Red) }
             )
-
+            
             Spacer(modifier = Modifier.height(24.dp))
             Text("Budget Preference", fontWeight = FontWeight.Bold)
             Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -639,7 +672,7 @@ fun EditPreferencesScreen(navController: NavHostController) {
                     FilterChip(budget == item, item, onClick = { budget = item })
                 }
             }
-
+            
             Spacer(modifier = Modifier.height(24.dp))
             Text("Traveling Style", fontWeight = FontWeight.Bold)
             Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -647,18 +680,18 @@ fun EditPreferencesScreen(navController: NavHostController) {
                     FilterChip(style == item, item, onClick = { style = item })
                 }
             }
-
+            
             Spacer(modifier = Modifier.height(24.dp))
             Text("Waktu Tersedia *", fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
-                value = availableTime,
-                onValueChange = { availableTime = it },
+                value = availableTime, 
+                onValueChange = { availableTime = it }, 
                 modifier = Modifier.fillMaxWidth(),
                 isError = availableTime.isBlank(),
                 supportingText = { if (availableTime.isBlank()) Text("Wajib diisi", color = Color.Red) }
             )
-
+            
             Spacer(modifier = Modifier.height(40.dp))
             Button(
                 onClick = { if (isFormValid) navController.popBackStack() },
@@ -677,26 +710,47 @@ fun EditPreferencesScreen(navController: NavHostController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(navController: NavHostController) {
-    val auth = FirebaseAuth.getInstance()
-    val db = FirebaseFirestore.getInstance()
-    val uid = auth.currentUser?.uid ?: ""
+    val auth = remember { FirebaseAuth.getInstance() }
+    val user = auth.currentUser
 
-    var name by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var bio by remember { mutableStateOf("") }
-    var isSaving by remember { mutableStateOf(false) }
+    var name by remember { mutableStateOf(user?.displayName?.takeIf { it.isNotBlank() } ?: "Petualang") }
+    var username by remember { mutableStateOf("satisyaa") }
+    var bio by remember { mutableStateOf("Life is short, travel more!") }
+    var profileImage by remember { mutableStateOf("") }
 
-    LaunchedEffect(uid) {
-        if (uid.isNotEmpty()) {
-            db.collection("users").document(uid).get()
-                .addOnSuccessListener { doc ->
-                    name = doc.getString("nama") ?: ""
-                    username = doc.getString("username") ?: ""
-                    bio = doc.getString("bio") ?: ""
-                }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(it)
+                val bytes = inputStream?.readBytes()
+                val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
+                profileImage = "data:image/jpeg;base64,$base64"
+                inputStream?.close()
+            } catch (e: Exception) {
+                // handle error silently
+            }
         }
     }
 
+    LaunchedEffect(user?.uid) {
+        if (user != null) {
+            val db = FirebaseDatabase.getInstance().getReference("users").child(user.uid)
+            db.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists()) {
+                        username = snapshot.child("username").getValue(String::class.java) ?: "satisyaa"
+                        bio = snapshot.child("bio").getValue(String::class.java) ?: "Life is short, travel more!"
+                        profileImage = snapshot.child("profileImage").getValue(String::class.java) ?: ""
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        }
+    }
+    
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -707,68 +761,69 @@ fun EditProfileScreen(navController: NavHostController) {
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Box(modifier = Modifier.size(100.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.BottomEnd) {
+                Box(
+                    modifier = Modifier.size(100.dp).background(Color.LightGray, CircleShape).clickable { launcher.launch("image/*") }, 
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    if (profileImage.isNotBlank() && profileImage.startsWith("data:image")) {
+                        val decodedBitmap: android.graphics.Bitmap? = remember(profileImage) {
+                            try {
+                                val base64String = profileImage.substringAfter("base64,")
+                                val decodedBytes = android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+                                android.graphics.BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                            } catch (e: Exception) { null }
+                        }
+                        if (decodedBitmap != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = decodedBitmap.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        }
+                    }
                     Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(32.dp).background(DarkGreen, CircleShape).padding(6.dp), tint = Color.White)
                 }
             }
             Spacer(modifier = Modifier.height(32.dp))
             Text("Nama Lengkap", fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = name, 
-                onValueChange = { name = it }, 
-                modifier = Modifier.fillMaxWidth(), 
-                shape = RoundedCornerShape(12.dp),
-                enabled = !isSaving
-            )
+            OutlinedTextField(value = name, onValueChange = { name = it }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Text("Username", fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = username, 
-                onValueChange = { username = it }, 
-                modifier = Modifier.fillMaxWidth(), 
-                shape = RoundedCornerShape(12.dp), 
-                prefix = { Text("@") },
-                enabled = !isSaving
-            )
+            OutlinedTextField(value = username, onValueChange = { username = it }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), prefix = { Text("@") })
             Spacer(modifier = Modifier.height(16.dp))
             Text("Bio", fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = bio, 
-                onValueChange = { bio = it }, 
-                modifier = Modifier.fillMaxWidth().height(100.dp), 
-                shape = RoundedCornerShape(12.dp),
-                enabled = !isSaving
-            )
-
+            OutlinedTextField(value = bio, onValueChange = { bio = it }, modifier = Modifier.fillMaxWidth().height(100.dp), shape = RoundedCornerShape(12.dp))
+            
             Spacer(modifier = Modifier.weight(1f))
             Button(
-                onClick = {
-                    if (uid.isNotEmpty()) {
-                        isSaving = true
-                        db.collection("users").document(uid).update(
-                            mapOf(
-                                "nama" to name,
-                                "username" to username,
-                                "bio" to bio
-                            )
-                        ).addOnSuccessListener {
-                            isSaving = false
-                            navController.popBackStack()
-                        }.addOnFailureListener {
-                            isSaving = false
+                onClick = { 
+                    if (user != null) {
+                        val profileUpdates = userProfileChangeRequest {
+                            displayName = name
                         }
+                        user.updateProfile(profileUpdates).addOnCompleteListener {
+                            val db = FirebaseDatabase.getInstance().getReference("users").child(user.uid)
+                            val userData = mapOf(
+                                "username" to username,
+                                "bio" to bio,
+                                "name" to name,
+                                "email" to (user.email ?: ""),
+                                "profileImage" to profileImage
+                            )
+                            db.updateChildren(userData).addOnCompleteListener {
+                                navController.popBackStack()
+                            }
+                        }
+                    } else {
+                        navController.popBackStack()
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
-                shape = RoundedCornerShape(28.dp),
-                enabled = !isSaving
+                shape = RoundedCornerShape(28.dp)
             ) {
-                if (isSaving) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Text("Simpan", fontWeight = FontWeight.Bold)
-                }
+                Text("Simpan", fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -777,6 +832,7 @@ fun EditProfileScreen(navController: NavHostController) {
 
 @Composable
 fun TripJoinedScreen(navController: NavHostController, allTrips: List<TripData>) {
+    val joinedTrips = allTrips.filter { it.isJoined || it.isCompleted }
     Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
@@ -784,11 +840,22 @@ fun TripJoinedScreen(navController: NavHostController, allTrips: List<TripData>)
         }
         Spacer(modifier = Modifier.height(24.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(allTrips.take(2)) { trip ->
-                TripItemCard(
-                    trip = trip,
-                    onClick = { navController.navigate("e_ticket/${trip.title}") }
-                )
+            if (joinedTrips.isEmpty()) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("Belum ada trip yang diikuti", color = Color.Gray)
+                    }
+                }
+            } else {
+                items(joinedTrips) { trip ->
+                    val statusText = if (trip.isCompleted) "Completed" else if (trip.paid) "Active" else "Menunggu Pembayaran"
+                    TripItemCard(
+                        trip = trip,
+                        status = statusText,
+                        showFavoriteIcon = false,
+                        onClick = { navController.navigate("e_ticket/${trip.title}") }
+                    )
+                }
             }
         }
     }
@@ -854,7 +921,7 @@ fun VerifiedAccountScreen(navController: NavHostController) {
         Spacer(modifier = Modifier.height(24.dp))
         Text("Akun Anda Terverifikasi!", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = 22.sp)
         Text("Identitas Anda telah kami konfirmasi untuk keamanan komunitas.", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = Color.Gray)
-
+        
         Spacer(modifier = Modifier.height(40.dp))
         Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFD5E8D4))) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -885,10 +952,10 @@ fun EmergencyContactScreen(navController: NavHostController) {
         Spacer(modifier = Modifier.height(24.dp))
         Text("Siapa yang harus kami hubungi dalam keadaan darurat?", color = Color.Gray)
         Spacer(modifier = Modifier.height(24.dp))
-
+        
         EmergencyItem("Ayah", "0812-3456-7890")
         EmergencyItem("Ibu", "0812-9876-5432")
-
+        
         Spacer(modifier = Modifier.height(32.dp))
         Button(
             onClick = { /* Add new */ },
@@ -924,10 +991,10 @@ fun ReportCenterScreen(navController: NavHostController) {
         Spacer(modifier = Modifier.height(24.dp))
         Text("Laporkan masalah atau pengguna lain demi keamanan bersama.", color = Color.Gray)
         Spacer(modifier = Modifier.height(32.dp))
-
+        
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = "", 
+            onValueChange = {}, 
             placeholder = { Text("Ceritakan apa yang terjadi...") },
             modifier = Modifier.fillMaxWidth().height(150.dp),
             shape = RoundedCornerShape(12.dp)
