@@ -44,7 +44,8 @@ fun HomeScreen(navController: NavHostController, allTrips: SnapshotStateList<Tri
         }
         val matchesSearch = trip.title.contains(searchQuery, ignoreCase = true) || 
                           trip.location.contains(searchQuery, ignoreCase = true)
-        matchesCategory && matchesSearch
+        val hasAvailableSlots = trip.availableSlots > 0
+        matchesCategory && matchesSearch && hasAvailableSlots
     }
 
     LazyVerticalGrid(

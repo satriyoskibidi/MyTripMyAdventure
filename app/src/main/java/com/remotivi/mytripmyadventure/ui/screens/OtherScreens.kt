@@ -216,7 +216,9 @@ fun ChatBubble(text: String, isMe: Boolean) {
 }
 
 @Composable
-fun ProfileScreen(navController: NavHostController) {
+fun ProfileScreen(navController: NavHostController, allTrips: List<TripData>) {
+    val joinedCount = allTrips.filter { it.isJoined || it.isCompleted }.size
+    val wishlistCount = allTrips.filter { it.isFavorite }.size
     val context = androidx.compose.ui.platform.LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
     val user = auth.currentUser
@@ -300,20 +302,14 @@ fun ProfileScreen(navController: NavHostController) {
                         Text(bio, fontSize = 12.sp)
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    ProfileStatItem(Icons.Default.Star, "5.0", "(100 Reviews)")
-                    ProfileStatItem(Icons.Default.VerifiedUser, "Trusted Traveler", "Level 3")
-                    ProfileStatItem(Icons.Default.Groups, "87,5%", "Match Rate")
-                }
             }
         }
         
         // Stats Row
         Row(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox("12", "Trip Joined", Icons.Default.WorkOutline, Modifier.weight(1f)) { navController.navigate(Screen.TripJoined.route) }
+            StatBox(joinedCount.toString(), "Trip Joined", Icons.Default.WorkOutline, Modifier.weight(1f)) { navController.navigate(Screen.TripJoined.route) }
             StatBox("5", "Trip Created", Icons.Default.Flag, Modifier.weight(1f)) { navController.navigate(Screen.TripCreated.route) }
-            StatBox("8", "Wishlist", Icons.Default.FavoriteBorder, Modifier.weight(1f)) { navController.navigate(Screen.Wishlist.route) }
+            StatBox(wishlistCount.toString(), "Wishlist", Icons.Default.FavoriteBorder, Modifier.weight(1f)) { navController.navigate(Screen.Wishlist.route) }
             StatBox("Medium", "Budget Level", Icons.Default.AccountBalanceWallet, Modifier.weight(1f)) { navController.navigate(Screen.Budget.route) }
         }
         
@@ -836,6 +832,7 @@ fun EditProfileScreen(navController: NavHostController) {
 
 @Composable
 fun TripJoinedScreen(navController: NavHostController, allTrips: List<TripData>) {
+    val joinedTrips = allTrips.filter { it.isJoined || it.isCompleted }
     Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
@@ -843,11 +840,22 @@ fun TripJoinedScreen(navController: NavHostController, allTrips: List<TripData>)
         }
         Spacer(modifier = Modifier.height(24.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(allTrips.take(2)) { trip ->
-                TripItemCard(
-                    trip = trip,
-                    onClick = { navController.navigate("e_ticket/${trip.title}") }
-                )
+            if (joinedTrips.isEmpty()) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text("Belum ada trip yang diikuti", color = Color.Gray)
+                    }
+                }
+            } else {
+                items(joinedTrips) { trip ->
+                    val statusText = if (trip.isCompleted) "Completed" else if (trip.paid) "Active" else "Menunggu Pembayaran"
+                    TripItemCard(
+                        trip = trip,
+                        status = statusText,
+                        showFavoriteIcon = false,
+                        onClick = { navController.navigate("e_ticket/${trip.title}") }
+                    )
+                }
             }
         }
     }

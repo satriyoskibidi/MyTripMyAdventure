@@ -46,20 +46,17 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import java.io.ByteArrayOutputStream
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 @Composable
 fun CreateTripIntroScreen(navController: NavHostController) {
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
         Text("Buat Open Trip", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(32.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Mulai Buat Trip!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Rencanakan perjalananmu dan ajak penjelajah lain bergabung.", color = Color.Gray)
-            }
-            Box(modifier = Modifier.size(100.dp).background(Color(0xFFAED6F1), RoundedCornerShape(16.dp))) // Placeholder image
-        }
+        Text("Mulai Buat Trip!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Rencanakan perjalananmu dan ajak penjelajah lain bergabung.", color = Color.Gray)
         Spacer(modifier = Modifier.height(32.dp))
         Text("Tentang Trip", fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
@@ -168,8 +165,10 @@ fun CreateTripStep1Screen(navController: NavHostController, viewModel: CreateTri
     var destination = viewModel.destination.value
     var duration = viewModel.duration.value
     val imageUri = viewModel.imageUri.value
+    var maxCapacity = viewModel.maxCapacity.value
+    var pricePerPerson = viewModel.pricePerPerson.value
 
-    val isFormValid = tripName.isNotBlank() && location.isNotBlank() && duration.isNotBlank() && imageUri != null
+    val isFormValid = tripName.isNotBlank() && location.isNotBlank() && duration.isNotBlank() && imageUri != null && maxCapacity.isNotBlank() && pricePerPerson.isNotBlank()
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         viewModel.imageUri.value = uri
@@ -244,6 +243,38 @@ fun CreateTripStep1Screen(navController: NavHostController, viewModel: CreateTri
                 isError = duration.isEmpty(),
                 supportingText = { if (duration.isEmpty()) Text("Durasi tidak boleh kosong", color = Color.Red, fontSize = 10.sp) }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Kapasitas Peserta *", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = maxCapacity, 
+                onValueChange = { input ->
+                    viewModel.maxCapacity.value = input.replace(Regex("[^\\d]"), "")
+                }, 
+                leadingIcon = { Icon(Icons.Default.People, null) }, 
+                placeholder = { Text("Contoh: 16") }, 
+                modifier = Modifier.fillMaxWidth(), 
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = maxCapacity.isEmpty(),
+                supportingText = { if (maxCapacity.isEmpty()) Text("Kapasitas tidak boleh kosong", color = Color.Red, fontSize = 10.sp) }
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Harga per Orang *", fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = pricePerPerson, 
+                onValueChange = { input ->
+                    viewModel.pricePerPerson.value = formatRupiah(input)
+                }, 
+                leadingIcon = { Icon(Icons.Default.Payment, null) }, 
+                placeholder = { Text("Contoh: 3000000") }, 
+                modifier = Modifier.fillMaxWidth(), 
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = pricePerPerson.isEmpty(),
+                supportingText = { if (pricePerPerson.isEmpty()) Text("Harga tidak boleh kosong", color = Color.Red, fontSize = 10.sp) }
+            )
             
             Spacer(modifier = Modifier.height(40.dp))
             Button(
@@ -280,13 +311,18 @@ fun CreateTripStep2Screen(navController: NavHostController, viewModel: CreateTri
             Spacer(modifier = Modifier.height(16.dp))
             
             itineraryList.forEachIndexed { index, (title, desc) ->
-                ItineraryStepItem(title, desc, onRemove = { itineraryList.removeAt(index) })
+                ItineraryStepItem(
+                    title = title,
+                    desc = desc,
+                    onDescChange = { newDesc -> itineraryList[index] = title to newDesc },
+                    onRemove = { itineraryList.removeAt(index) }
+                )
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             Box(
                 modifier = Modifier.fillMaxWidth().height(56.dp)
-                    .clickable { itineraryList.add("Day ${itineraryList.size + 1}" to "Deskripsi aktivitas") }
+                    .clickable { itineraryList.add("Day ${itineraryList.size + 1}" to "") }
                     .background(LightGrey.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
                     .border(BorderStroke(1.dp, Color.Gray), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
@@ -334,22 +370,30 @@ fun CreateTripStep2Screen(navController: NavHostController, viewModel: CreateTri
 }
 
 @Composable
-fun ItineraryStepItem(title: String, desc: String, onRemove: () -> Unit) {
+fun ItineraryStepItem(title: String, desc: String, onDescChange: (String) -> Unit, onRemove: () -> Unit) {
     Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(modifier = Modifier.size(10.dp).background(DarkGreen, CircleShape))
-            Box(modifier = Modifier.width(1.dp).height(50.dp).background(Color.Gray))
+            Box(modifier = Modifier.width(1.dp).height(80.dp).background(Color.Gray))
         }
         Spacer(modifier = Modifier.width(16.dp))
         Card(modifier = Modifier.weight(1f).border(1.dp, LightGrey, RoundedCornerShape(12.dp)), colors = CardDefaults.cardColors(containerColor = Color.White)) {
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(title, fontWeight = FontWeight.Bold)
-                    Text(desc, fontSize = 12.sp, color = Color.Gray)
+                    IconButton(onClick = onRemove) {
+                        Icon(Icons.Default.Delete, null, tint = Color.Gray)
+                    }
                 }
-                IconButton(onClick = onRemove) {
-                    Icon(Icons.Default.Delete, null, tint = Color.Gray)
-                }
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = desc,
+                    onValueChange = onDescChange,
+                    placeholder = { Text("Deskripsi aktivitas", fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
+                )
             }
         }
     }
@@ -504,8 +548,8 @@ fun CreateTripStep4Screen(navController: NavHostController, viewModel: CreateTri
             DetailRow("Meeting Point", meetingPoint)
             DetailRow("Waktu Meeting", meetingTime)
             DetailRow("Durasi Trip", duration)
-            DetailRow("Kapasitas Peserta", "8/16 Orang")
-            DetailRow("Harga per Orang", "Rp3.000.000")
+            DetailRow("Kapasitas Peserta", "${viewModel.maxCapacity.value} Orang")
+            DetailRow("Harga per Orang", viewModel.pricePerPerson.value)
             
             Spacer(modifier = Modifier.height(16.dp))
             Text("Itinerary", fontWeight = FontWeight.Bold)
@@ -541,9 +585,11 @@ fun CreateTripStep4Screen(navController: NavHostController, viewModel: CreateTri
                         title = tripName,
                         location = location,
                         date = duration,
-                        price = "Rp3.000.000",
+                        price = viewModel.pricePerPerson.value,
                         category = "Open Trip",
-                        imageName = base64Image
+                        imageName = base64Image,
+                        maxSlots = viewModel.maxCapacity.value.toIntOrNull() ?: 10,
+                        availableSlots = viewModel.maxCapacity.value.toIntOrNull() ?: 10
                     )
                     
                     val database = FirebaseDatabase.getInstance()
@@ -583,4 +629,15 @@ fun DetailRow(label: String, value: String) {
         Text(label, color = Color.Gray, fontSize = 12.sp)
         Text(value, fontWeight = FontWeight.Bold, fontSize = 12.sp)
     }
+}
+
+fun formatRupiah(value: String): String {
+    val cleanString = value.replace(Regex("[^\\d]"), "")
+    if (cleanString.isEmpty()) return ""
+    val parsed = cleanString.toLongOrNull() ?: return ""
+    val formatter = java.text.DecimalFormat("#,###")
+    val symbols = formatter.decimalFormatSymbols
+    symbols.groupingSeparator = '.'
+    formatter.decimalFormatSymbols = symbols
+    return "Rp" + formatter.format(parsed)
 }

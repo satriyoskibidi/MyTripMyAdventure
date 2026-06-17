@@ -124,6 +124,10 @@ fun MainApp() {
                         val trip = child.getValue(TripData::class.java)
                         if (trip != null) {
                             trip.id = child.key ?: ""
+                            if (trip.availableSlots == 0) {
+                                tripsRef.child(trip.id).child("availableSlots").setValue(6)
+                                trip.availableSlots = 6
+                            }
                             if (trip.availableSlots == 2) {
                                 tripsRef.child(trip.id).child("availableSlots").setValue(7)
                                 trip.availableSlots = 7
@@ -212,7 +216,7 @@ fun MainApp() {
             composable(Screen.Favorite.route) { 
                 FavoriteScreen(navController, allTrips) 
             }
-            composable(Screen.Profile.route) { ProfileScreen(navController) }
+            composable(Screen.Profile.route) { ProfileScreen(navController, allTrips) }
             
             composable(Screen.CreateTripStep1.route) { CreateTripStep1Screen(navController, createTripViewModel) }
             composable(Screen.CreateTripStep2.route) { CreateTripStep2Screen(navController, createTripViewModel) }
