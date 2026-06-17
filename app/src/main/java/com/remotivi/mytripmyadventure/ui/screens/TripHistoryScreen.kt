@@ -1,15 +1,8 @@
 package com.remotivi.mytripmyadventure.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -21,117 +14,85 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.components.TripData
 import com.remotivi.mytripmyadventure.ui.components.TripItemCard
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
-import com.remotivi.mytripmyadventure.ui.theme.LightGrey
 
 @Composable
 fun TripHistoryScreen(navController: NavHostController, allTrips: SnapshotStateList<TripData>) {
+    val joinedTrips = allTrips.filter { it.isJoined || it.isCompleted }
+
+    val upcomingTrips = joinedTrips.filter { !it.isCompleted }
+    val pastTrips = joinedTrips.filter { it.isCompleted }
+
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Trip Mendatang", "Trip Lampau")
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Notifications, null)
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Text("Riwayat Perjalanan", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Icon(Icons.Default.Notifications, null, tint = Color.Transparent)
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Surface(color = Color(0xFFEFEFEF), shape = RoundedCornerShape(12.dp)) {
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.Transparent,
-                contentColor = DarkGreen,
-                divider = {},
-                indicator = { tabPositions ->
-                    if (selectedTab < tabPositions.size) {
-                        TabRowDefaults.SecondaryIndicator(
-                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = DarkGreen
+
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = Color.White,
+            contentColor = DarkGreen,
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                    color = DarkGreen
+                )
+            }
+        ) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = {
+                        Text(
+                            text = title,
+                            fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
+                            color = if (selectedTab == index) DarkGreen else Color.Gray
                         )
                     }
-                }
-            ) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(if (index == 0) Icons.Default.CalendarToday else Icons.Default.Flag, null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(title, fontSize = 12.sp, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal)
-                            }
-                        }
-                    )
-                }
+                )
             }
         }
-        
-        Spacer(modifier = Modifier.height(24.dp))
 
-        if (selectedTab == 0) {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        val currentList = if (selectedTab == 0) upcomingTrips else pastTrips
+        val emptyMessage = if (selectedTab == 0) "Belum ada trip mendatang" else "Belum ada trip yang selesai"
+
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
+        ) {
+            if (currentList.isEmpty()) {
                 item {
-                    val bromoTrip = allTrips.find { it.title.contains("Bromo") } ?: allTrips[0]
-                    TripItemCard(
-                        trip = bromoTrip,
-                        status = "Active",
-                        showFavoriteIcon = false
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = { navController.navigate("e_ticket/${bromoTrip.title}") },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE67E22)),
-                        shape = RoundedCornerShape(12.dp)
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.ConfirmationNumber, null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("E-Ticket", fontWeight = FontWeight.Bold)
+                        Text(emptyMessage, color = Color.Gray)
+                    }
+                }
+            } else {
+                items(currentList) { trip ->
+                    val statusText = if (trip.isCompleted) "Completed"
+                    else if (trip.paid) "Active"
+                    else "Menunggu Pembayaran"
+                    TripItemCard(
+                        trip = trip,
+                        status = statusText,
+                        showFavoriteIcon = false,
+                        onClick = {
+                            val encodedTitle = android.net.Uri.encode(trip.title)
+                            navController.navigate("trip_detail/$encodedTitle")
                         }
-                    }
-                }
-                item {
-                    val merbabuTrip = allTrips.find { it.title.contains("Merbabu") } ?: allTrips[1]
-                    TripItemCard(
-                        trip = merbabuTrip,
-                        status = "Menunggu Pembayaran",
-                        showFavoriteIcon = false
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = { navController.navigate("payment/${merbabuTrip.title}") },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE67E22)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Bayar Sekarang", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                item {
-                    val rinjaniTrip = allTrips.find { it.title.contains("Rinjani") } ?: allTrips[2]
-                    TripItemCard(
-                        trip = rinjaniTrip,
-                        status = "Completed",
-                        showFavoriteIcon = false
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { navController.navigate("review/${rinjaniTrip.title}") },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, Color.Gray)
-                    ) {
-                        Text("Beri Ulasan", color = Color.Black, fontWeight = FontWeight.Bold)
-                    }
                 }
             }
         }
