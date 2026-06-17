@@ -25,8 +25,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 import com.remotivi.mytripmyadventure.Screen
 import com.remotivi.mytripmyadventure.ui.theme.DarkGreen
 import com.remotivi.mytripmyadventure.ui.theme.LightGrey
@@ -57,7 +55,7 @@ fun SettingsScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.weight(1f))
             
             TextButton(
-                onClick = { Firebase.auth.signOut() },
+                onClick = { /* Logout */ },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
             ) {
@@ -216,7 +214,7 @@ fun VoucherScreen(navController: NavHostController) {
 data class VoucherData(val code: String, val desc: String, val expiry: String)
 
 @Composable
-fun PaymentSuccessScreen(navController: NavHostController, tripTitle: String) {
+fun PaymentSuccessScreen(navController: NavHostController, tripTitle: String, method: String) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -230,7 +228,11 @@ fun PaymentSuccessScreen(navController: NavHostController, tripTitle: String) {
         
         Spacer(modifier = Modifier.height(48.dp))
         Button(
-            onClick = { navController.navigate("e_ticket/$tripTitle") { popUpTo("home") } },
+            onClick = { 
+                val encodedMethod = android.net.Uri.encode(method)
+                val encodedTripTitle = android.net.Uri.encode(tripTitle)
+                navController.navigate("e_ticket/$encodedTripTitle?method=${encodedMethod}") { popUpTo("home") } 
+            },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
             shape = RoundedCornerShape(28.dp)
@@ -239,11 +241,13 @@ fun PaymentSuccessScreen(navController: NavHostController, tripTitle: String) {
         }
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedButton(
-            onClick = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
+            onClick = { navController.navigate(Screen.MyTrips.route) { 
+                popUpTo(navController.graph.startDestinationId) { inclusive = false } 
+            } },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(28.dp)
         ) {
-            Text("Kembali ke Home", color = DarkGreen)
+            Text("Ke Riwayat Perjalanan", color = DarkGreen)
         }
     }
 }
