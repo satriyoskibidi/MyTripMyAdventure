@@ -7,7 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,10 +23,23 @@ import com.remotivi.mytripmyadventure.ui.theme.PriceOrange
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VirtualAccountScreen(tripId: String, method: String, navController: NavHostController, allTrips: List<TripData>) {
+fun VirtualAccountScreen(tripId: String, method: String, quantity: Int, navController: NavHostController, allTrips: List<TripData>) {
     val trip = allTrips.find { it.title == tripId } ?: allTrips[0]
     val context = LocalContext.current
     val vaNumber = "8077 0812 3456 7890"
+
+    val pricePerPersonLong = remember(trip.price) {
+        val clean = trip.price.replace(Regex("[^0-9]"), "")
+        clean.toLongOrNull() ?: 0L
+    }
+    val totalPriceString = remember(pricePerPersonLong, quantity) {
+        val total = pricePerPersonLong * quantity
+        val formatter = java.text.DecimalFormat("#,###")
+        val symbols = formatter.decimalFormatSymbols
+        symbols.groupingSeparator = '.'
+        formatter.decimalFormatSymbols = symbols
+        "Rp" + formatter.format(total)
+    }
 
     Scaffold(
         topBar = {
@@ -47,8 +60,10 @@ fun VirtualAccountScreen(tripId: String, method: String, navController: NavHostC
                         val tripRef = database.getReference("trips").child(trip.id)
                         tripRef.child("paid").setValue(true)
                         tripRef.child("joined").setValue(true)
-                        if (trip.availableSlots > 0) {
-                            tripRef.child("availableSlots").setValue(trip.availableSlots - 1)
+                        if (trip.availableSlots >= quantity) {
+                            tripRef.child("availableSlots").setValue(trip.availableSlots - quantity)
+                        } else {
+                            tripRef.child("availableSlots").setValue(0)
                         }
                     }
                     val encodedMethod = android.net.Uri.encode(method)
@@ -74,7 +89,7 @@ fun VirtualAccountScreen(tripId: String, method: String, navController: NavHostC
             
             Text("Selesaikan Pembayaran", fontSize = 16.sp, color = Color.Gray)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(trip.price, color = PriceOrange, fontWeight = FontWeight.Bold, fontSize = 28.sp)
+            Text(totalPriceString, color = PriceOrange, fontWeight = FontWeight.Bold, fontSize = 28.sp)
             
             Spacer(modifier = Modifier.height(32.dp))
 

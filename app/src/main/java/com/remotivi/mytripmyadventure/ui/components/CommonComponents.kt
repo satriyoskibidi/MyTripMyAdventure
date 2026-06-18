@@ -47,7 +47,8 @@ data class TripData(
     var isJoined: Boolean = false,
     var paid: Boolean = false,
     var isCompleted: Boolean = false,
-    var isFavorite: Boolean = false
+    var isFavorite: Boolean = false,
+    var creatorId: String = ""
 )
 
 data class ReviewData(

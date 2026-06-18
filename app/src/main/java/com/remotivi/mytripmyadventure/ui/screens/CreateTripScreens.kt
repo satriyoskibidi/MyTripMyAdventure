@@ -589,7 +589,8 @@ fun CreateTripStep4Screen(navController: NavHostController, viewModel: CreateTri
                         category = "Open Trip",
                         imageName = base64Image,
                         maxSlots = viewModel.maxCapacity.value.toIntOrNull() ?: 10,
-                        availableSlots = viewModel.maxCapacity.value.toIntOrNull() ?: 10
+                        availableSlots = viewModel.maxCapacity.value.toIntOrNull() ?: 10,
+                        creatorId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
                     )
                     
                     val database = FirebaseDatabase.getInstance()

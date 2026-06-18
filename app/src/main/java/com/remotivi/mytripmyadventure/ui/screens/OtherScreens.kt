@@ -20,6 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.Image
+import androidx.compose.ui.platform.LocalContext
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -217,11 +225,12 @@ fun ChatBubble(text: String, isMe: Boolean) {
 
 @Composable
 fun ProfileScreen(navController: NavHostController, allTrips: List<TripData>) {
-    val joinedCount = allTrips.filter { it.isJoined || it.isCompleted }.size
-    val wishlistCount = allTrips.filter { it.isFavorite }.size
-    val context = androidx.compose.ui.platform.LocalContext.current
     val auth = remember { FirebaseAuth.getInstance() }
     val user = auth.currentUser
+    val joinedCount = allTrips.filter { it.isJoined || it.isCompleted }.size
+    val wishlistCount = allTrips.filter { it.isFavorite }.size
+    val createdTrips = allTrips.filter { it.creatorId.isNotEmpty() && it.creatorId == user?.uid }
+    val context = androidx.compose.ui.platform.LocalContext.current
     val name = user?.displayName?.takeIf { it.isNotBlank() } ?: "Petualang"
     val email = user?.email ?: "Belum ada email"
 
@@ -303,58 +312,17 @@ fun ProfileScreen(navController: NavHostController, allTrips: List<TripData>) {
                     }
                 }
             }
-        }
+         }
         
         // Stats Row
         Row(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatBox(joinedCount.toString(), "Trip Joined", Icons.Default.WorkOutline, Modifier.weight(1f)) { navController.navigate(Screen.TripJoined.route) }
-            StatBox("5", "Trip Created", Icons.Default.Flag, Modifier.weight(1f)) { navController.navigate(Screen.TripCreated.route) }
+            StatBox(createdTrips.size.toString(), "Trip Created", Icons.Default.Flag, Modifier.weight(1f)) { navController.navigate(Screen.TripCreated.route) }
             StatBox(wishlistCount.toString(), "Wishlist", Icons.Default.FavoriteBorder, Modifier.weight(1f)) { navController.navigate(Screen.Wishlist.route) }
             StatBox("Medium", "Budget Level", Icons.Default.AccountBalanceWallet, Modifier.weight(1f)) { navController.navigate(Screen.Budget.route) }
         }
         
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        // Travel Preference
-        Card(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = DarkGreen)) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Person, null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("My Travel Preference", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                    Surface(
-                        color = Color(0xFFFDF5E6), 
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.clickable { navController.navigate(Screen.EditPreferences.route) }
-                    ) {
-                        Text("Edit Preferences >", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Row {
-                    PreferenceItem(Icons.Default.LocationOn, "Destinasi Favorit", "Bali, Bromo, Rinjani", Modifier.weight(1f))
-                    PreferenceItem(Icons.Default.AccountBalanceWallet, "Budget", "Low - Mid", Modifier.weight(1f))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row {
-                    PreferenceItem(Icons.Default.Backpack, "Gaya Traveling", "Adventurer", Modifier.weight(1f))
-                    PreferenceItem(Icons.Default.CalendarMonth, "Waktu Tersedia", "Weekend", Modifier.weight(1f))
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        // Quick Access to Features
-        Text("Travel Tools", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
-        Row(modifier = Modifier.padding(20.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-             FeatureIcon(Icons.Default.Groups, "Matching") { navController.navigate(Screen.Matching.route) }
-             FeatureIcon(Icons.Default.EventNote, "Planner") { navController.navigate(Screen.Planner.route) }
-             FeatureIcon(Icons.Default.AccountBalanceWallet, "Budget") { navController.navigate(Screen.Budget.route) }
-             FeatureIcon(Icons.AutoMirrored.Filled.Message, "Chat") { navController.navigate(Screen.Chat.route) }
-        }
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Safety & Security
         Card(modifier = Modifier.padding(horizontal = 20.dp).fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, LightGrey)) {
@@ -380,6 +348,127 @@ fun ProfileScreen(navController: NavHostController, allTrips: List<TripData>) {
                      }
                  }
              }
+        }
+
+        // TikTok-style grid for created trips
+        Spacer(modifier = Modifier.height(24.dp))
+        HorizontalDivider(color = LightGrey, modifier = Modifier.padding(horizontal = 20.dp))
+        
+        TabRow(
+            selectedTabIndex = 0,
+            containerColor = Color.White,
+            contentColor = DarkGreen,
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    Modifier.tabIndicatorOffset(tabPositions[0]),
+                    color = DarkGreen
+                )
+            },
+            modifier = Modifier.padding(horizontal = 20.dp)
+        ) {
+            Tab(
+                selected = true,
+                onClick = {},
+                icon = { Icon(Icons.Default.GridOn, contentDescription = "Created Trips", tint = DarkGreen) }
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        if (createdTrips.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxWidth().height(150.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Belum ada trip yang dibuat", color = Color.Gray, fontSize = 14.sp)
+            }
+        } else {
+            val rows = createdTrips.chunked(3)
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                rows.forEach { rowItems ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowItems.forEach { trip ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(LightGrey)
+                                    .clickable { navController.navigate("trip_detail/${android.net.Uri.encode(trip.title)}") }
+                            ) {
+                                val ctx = LocalContext.current
+                                if (trip.imageName.startsWith("data:image")) {
+                                    val decodedBitmap: android.graphics.Bitmap? = remember(trip.imageName) {
+                                        try {
+                                            val base64String = trip.imageName.substringAfter("base64,")
+                                            val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
+                                            BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+                                        } catch (e: Exception) { null }
+                                    }
+                                    if (decodedBitmap != null) {
+                                        Image(
+                                            bitmap = decodedBitmap.asImageBitmap(),
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                } else {
+                                    val resolvedImageRes = if (trip.imageRes != 0) trip.imageRes 
+                                        else if (trip.imageName.isNotEmpty()) {
+                                            ctx.resources.getIdentifier(trip.imageName, "drawable", ctx.packageName)
+                                        } else 0
+                                    if (resolvedImageRes != 0) {
+                                        Image(
+                                            painter = androidx.compose.ui.res.painterResource(id = resolvedImageRes),
+                                            contentDescription = null,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                }
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
+                                                startY = 100f
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.BottomStart
+                                ) {
+                                    Column(modifier = Modifier.padding(6.dp)) {
+                                        Text(
+                                            trip.title, 
+                                            color = Color.White, 
+                                            fontWeight = FontWeight.Bold, 
+                                            fontSize = 11.sp, 
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            trip.price, 
+                                            color = PriceOrange, 
+                                            fontWeight = FontWeight.Bold, 
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        val emptySlots = 3 - rowItems.size
+                        repeat(emptySlots) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))

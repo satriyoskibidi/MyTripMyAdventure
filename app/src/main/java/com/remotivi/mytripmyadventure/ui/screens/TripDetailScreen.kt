@@ -40,11 +40,37 @@ import com.remotivi.mytripmyadventure.ui.theme.PriceOrange
 fun TripDetailScreen(tripId: String, navController: NavHostController, allTrips: List<TripData>, allReviews: List<ReviewData> = emptyList()) {
     // Cari data trip berdasarkan judul (tripId)
     val trip = allTrips.find { it.title == tripId } ?: allTrips[0]
+    val currentUser = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser }
+    val isCreator = trip.creatorId.isNotEmpty() && trip.creatorId == currentUser?.uid
 
     Scaffold(
         bottomBar = {
             Surface(tonalElevation = 8.dp, color = Color.White) {
-                if (!trip.isJoined) {
+                if (isCreator) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Anda Pembuat Trip", fontSize = 12.sp, color = Color.Gray)
+                            Text(trip.price, color = PriceOrange, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        }
+                        Button(
+                            onClick = { 
+                                val encodedTitle = android.net.Uri.encode(trip.title)
+                                navController.navigate("edit_trip/$encodedTitle") 
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.height(52.dp).width(140.dp)
+                        ) {
+                            Text("EDIT TRIP", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
+                } else if (!trip.isJoined) {
                     Row(
                         modifier = Modifier
                             .padding(16.dp)

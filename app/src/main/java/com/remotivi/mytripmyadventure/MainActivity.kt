@@ -85,6 +85,7 @@ sealed class Screen(val route: String, val icon: ImageVector, val label: String)
     object ReviewSuccess : Screen("review_success", Icons.Default.CheckCircle, "Review Success")
     object MyReviews : Screen("my_reviews", Icons.Default.Star, "My Reviews")
     object ReviewDetail : Screen("review_detail/{reviewId}", Icons.Default.RateReview, "Review Detail")
+    object EditTrip : Screen("edit_trip/{tripId}", Icons.Default.Edit, "Edit Trip")
     
     // Safety & Security Sub-screens
     object VerifiedAccount : Screen("verified_account", Icons.Default.Verified, "Verified Account")
@@ -247,6 +248,10 @@ fun MainApp() {
                 val reviewId = backStackEntry.arguments?.getString("reviewId") ?: ""
                 com.remotivi.mytripmyadventure.ui.screens.ReviewDetailScreen(reviewId, navController, allReviews)
             }
+            composable(Screen.EditTrip.route) { backStackEntry ->
+                val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+                com.remotivi.mytripmyadventure.ui.screens.EditTripScreen(tripId, navController, allTrips)
+            }
             
             composable(Screen.Notifications.route) { NotificationScreen() }
             composable(Screen.Chat.route) { ChatScreen(navController) }
@@ -298,15 +303,22 @@ fun MainApp() {
                 PaymentSuccessScreen(navController, tripId, method)
             }
             composable(
-                route = Screen.VirtualAccount.route + "?method={method}",
-                arguments = listOf(androidx.navigation.navArgument("method") { 
-                    type = androidx.navigation.NavType.StringType
-                    defaultValue = "Bank BCA" 
-                })
+                route = Screen.VirtualAccount.route + "?method={method}&quantity={quantity}",
+                arguments = listOf(
+                    androidx.navigation.navArgument("method") { 
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = "Bank BCA" 
+                    },
+                    androidx.navigation.navArgument("quantity") {
+                        type = androidx.navigation.NavType.IntType
+                        defaultValue = 1
+                    }
+                )
             ) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
                 val method = backStackEntry.arguments?.getString("method") ?: "Bank BCA"
-                com.remotivi.mytripmyadventure.ui.screens.VirtualAccountScreen(tripId, method, navController, allTrips)
+                val quantity = backStackEntry.arguments?.getInt("quantity") ?: 1
+                com.remotivi.mytripmyadventure.ui.screens.VirtualAccountScreen(tripId, method, quantity, navController, allTrips)
             }
             composable(Screen.ParticipantList.route) { backStackEntry ->
                 val tripId = backStackEntry.arguments?.getString("tripId") ?: ""

@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +41,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun PaymentScreen(tripId: String, navController: NavHostController, allTrips: List<TripData>) {
     var selectedMethod by remember { mutableStateOf("Bank BCA") }
+    var quantity by remember { mutableStateOf(1) }
     val trip = allTrips.find { it.title == tripId } ?: allTrips[0]
 
     Scaffold(
@@ -57,7 +60,7 @@ fun PaymentScreen(tripId: String, navController: NavHostController, allTrips: Li
                 onClick = {
                     val encodedMethod = android.net.Uri.encode(selectedMethod)
                     val encodedTripId = android.net.Uri.encode(tripId)
-                    navController.navigate("virtual_account/${encodedTripId}?method=${encodedMethod}") 
+                    navController.navigate("virtual_account/${encodedTripId}?method=${encodedMethod}&quantity=${quantity}") 
                 },
                 modifier = Modifier.fillMaxWidth().padding(24.dp).height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = DarkGreen),
@@ -123,16 +126,63 @@ fun PaymentScreen(tripId: String, navController: NavHostController, allTrips: Li
             }
 
             item {
+                val pricePerPersonLong = remember(trip.price) {
+                    val clean = trip.price.replace(Regex("[^0-9]"), "")
+                    clean.toLongOrNull() ?: 0L
+                }
+                val totalPriceString = remember(pricePerPersonLong, quantity) {
+                    val total = pricePerPersonLong * quantity
+                    val formatter = java.text.DecimalFormat("#,###")
+                    val symbols = formatter.decimalFormatSymbols
+                    symbols.groupingSeparator = '.'
+                    formatter.decimalFormatSymbols = symbols
+                    "Rp" + formatter.format(total)
+                }
+
                 Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, LightGrey)) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Rincian Pembayaran", fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(12.dp))
                         PaymentDetailRow("Harga Perorang", trip.price)
-                        PaymentDetailRow("Jumlah Peserta", "1 Orang")
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Jumlah Peserta", color = Color.Gray, fontSize = 13.sp)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                IconButton(
+                                    onClick = { if (quantity > 1) quantity-- },
+                                    modifier = Modifier.size(28.dp),
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = LightGrey)
+                                ) {
+                                    Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp), tint = Color.Black)
+                                }
+                                Text(
+                                    text = "$quantity Orang",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                IconButton(
+                                    onClick = { if (quantity < trip.availableSlots) quantity++ },
+                                    modifier = Modifier.size(28.dp),
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = LightGrey),
+                                    enabled = quantity < trip.availableSlots
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp), tint = Color.Black)
+                                }
+                            }
+                        }
+
                         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Total Pembayaran", fontWeight = FontWeight.Bold)
-                            Text(trip.price, color = PriceOrange, fontWeight = FontWeight.Bold)
+                            Text(totalPriceString, color = PriceOrange, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
